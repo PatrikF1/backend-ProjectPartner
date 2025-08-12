@@ -6,7 +6,7 @@ dotenv.config()
 
 
 const mongoURI = process.env.MONGO_URI as string 
-const database = process.env.MONGO_NAME as string
+const database = process.env.MONGO_DB_NAME as string
 
 
 if (!mongoURI || !database) {

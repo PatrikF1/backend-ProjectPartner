@@ -11,3 +11,4 @@ router.get('/', async (req, res) => {
     }
 });
 export default router;
+//# sourceMappingURL=Users.js.map
