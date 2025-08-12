@@ -20,3 +20,4 @@ app.listen(PORT, error => {
     }
     console.log(`Aplikacija radi na http://localhost:${PORT}`);
 });
+//# sourceMappingURL=index.js.map

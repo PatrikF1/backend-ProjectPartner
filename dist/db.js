@@ -2,7 +2,7 @@ import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 dotenv.config();
 const mongoURI = process.env.MONGO_URI;
-const database = process.env.MONGO_NAME;
+const database = process.env.MONGO_DB_NAME;
 if (!mongoURI || !database) {
     throw new Error("MONGO_URI ili MONGO_DB_NAME nisu definirani u .env datoteci");
 }
@@ -21,3 +21,4 @@ async function connectToDatabase() {
 }
 let db = await connectToDatabase();
 export { db };
+//# sourceMappingURL=db.js.map
