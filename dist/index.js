@@ -11,6 +11,9 @@ app.get('/', (req, res) => {
     res.send('Backend radi!!!');
 });
 app.use("/users", userRoutes);
+app.get('/', (req, res) => {
+    res.send('Backend radi');
+});
 app.listen(PORT, error => {
     if (error) {
         console.log('Greška prilikom pokretanja servera', error);
