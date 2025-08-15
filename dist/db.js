@@ -1,24 +1,14 @@
-import { MongoClient } from "mongodb";
-import dotenv from "dotenv";
-dotenv.config();
-const mongoURI = process.env.MONGO_URI;
-const database = process.env.MONGO_DB_NAME;
-if (!mongoURI || !database) {
-    throw new Error("MONGO_URI ili MONGO_DB_NAME nisu definirani u .env datoteci");
-}
-async function connectToDatabase() {
-    try {
-        const client = new MongoClient(mongoURI);
-        await client.connect();
-        console.log('Uspješno spajanje na bazu podataka');
-        let db = client.db(database);
-        return db;
+import { MongoClient } from 'mongodb';
+let client = null;
+export async function connectToDatabase() {
+    const uri = process.env.MONGO_URI;
+    if (!uri)
+        throw new Error('MONGO_URI nije postavljen u .env');
+    const dbName = process.env.MONGO_DB_NAME || 'ProjectPartner';
+    if (!client) {
+        client = await MongoClient.connect(uri);
+        console.log('MongoDB spojen!');
     }
-    catch (error) {
-        console.error('Greška prilikom spajanja na bazu podataka', error);
-        throw error;
-    }
+    return client.db(dbName);
 }
-let db = await connectToDatabase();
-export { db };
 //# sourceMappingURL=db.js.map
