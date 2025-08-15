@@ -6,25 +6,18 @@ import userRoutes from "./routes/Users.js"
 
 dotenv.config();
 
-const PORT = process.env.PORT as string;
+const PORT = process.env.PORT || 3000;
 
 const app: Express = express()
 
-
 app.use(cors())
 app.use(express.json())
-
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Backend radi!!!')
 })
 
 app.use("/users", userRoutes);
-
-
-app.get('/', (req, res) => {
-  res.send('Backend radi')
-})
 
 app.listen(PORT, error => {
   if (error) {
