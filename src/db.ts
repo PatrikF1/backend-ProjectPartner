@@ -1,18 +1,17 @@
-import { MongoClient, Db } from 'mongodb';
+import mongoose from 'mongoose';
 
-let client: MongoClient | null = null;
-
-
-export async function connectToDatabase(): Promise<Db> {
+export async function connectToDatabase(): Promise<void> {
   const uri = process.env.MONGO_URI;
 
-  if (!uri) throw new Error('MONGO_URI nije postavljen u .env');
-  const dbName = process.env.MONGO_DB_NAME || 'ProjectPartner';
-
-  if (!client) {
-    client = await MongoClient.connect(uri);
-    console.log('MongoDB spojen!');
+  if (!uri) {
+    throw new Error('MONGO_URI nije postavljen u .env');
   }
 
-  return client.db(dbName);
+  try {
+    await mongoose.connect(uri);
+    console.log('MongoDB spojen sa Mongoose-om');
+  } catch (error) {
+    console.error('Greška pri povezivanju na MongoDB:', error);
+    throw error;
+  }
 }

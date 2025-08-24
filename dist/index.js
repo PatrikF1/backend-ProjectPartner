@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import userRoutes from "./routes/Users.js";
+import authRoutes from "./routes/Auth.js";
 dotenv.config();
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -10,7 +11,8 @@ app.use(express.json());
 app.get('/', (req, res) => {
     res.send('Backend radi!!!');
 });
-app.use("/users", userRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 app.listen(PORT, error => {
     if (error) {
         console.log('Greška prilikom pokretanja servera', error);
