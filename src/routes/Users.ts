@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', async (req: Request, res: Response) => {
     try {
         await connectToDatabase();
-        const users = await User.find();
+        const users = await User.find().select('-passwordHash');
         res.json(users);
     } catch (error) {
         res.status(500).json({ error: 'Greška pri dohvaćanju korisnika' });
@@ -19,42 +19,11 @@ router.post('/', async (req: Request, res: Response) => {
         await connectToDatabase();
         const newUser = new User(req.body);
         const savedUser = await newUser.save();
-        res.status(201).json(savedUser);
+        const userData: any = savedUser.toObject();
+        delete userData.passwordHash;
+        res.status(201).json(userData);
     } catch (error) {
         res.status(400).json({ error: 'Greška pri kreiranju korisnika' });
-    }
-});
-
-router.get('/:id', async (req: Request, res: Response) => {
-    try {
-        await connectToDatabase();
-        const user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ error: 'Korisnik nije pronađen' });
-        res.json(user);
-    } catch (error) {
-        res.status(500).json({ error: 'Greška pri dohvaćanju korisnika' });
-    }
-});
-
-router.put('/:id', async (req: Request, res: Response) => {
-    try {
-        await connectToDatabase();
-        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!user) return res.status(404).json({ error: 'Korisnik nije pronađen' });
-        res.json(user);
-    } catch (error) {
-        res.status(500).json({ error: 'Greška pri ažuriranju korisnika' });
-    }
-});
-
-router.delete('/:id', async (req: Request, res: Response) => {
-    try {
-        await connectToDatabase();
-        const user = await User.findByIdAndDelete(req.params.id);
-        if (!user) return res.status(404).json({ error: 'Greška pri brisanju korisnika' });
-        res.json({ message: 'Korisnik obrisan' });
-    } catch (error) {
-        res.status(500).json({ error: 'Greška pri brisanju korisnika' });
     }
 });
 

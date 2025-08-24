@@ -6,10 +6,10 @@ export async function connectToDatabase() {
     }
     try {
         await mongoose.connect(uri);
-        console.log('✅ MongoDB spojen sa Mongoose-om');
+        console.log('MongoDB spojen sa Mongoose-om');
     }
     catch (error) {
-        console.error('❌ Greška pri povezivanju na MongoDB:', error);
+        console.error('Greška pri povezivanju na MongoDB:', error);
         throw error;
     }
 }

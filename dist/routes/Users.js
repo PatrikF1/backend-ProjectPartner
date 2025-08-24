@@ -5,7 +5,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     try {
         await connectToDatabase();
-        const users = await User.find();
+        const users = await User.find().select('-passwordHash');
         res.json(users);
     }
     catch (error) {
@@ -17,7 +17,8 @@ router.post('/', async (req, res) => {
         await connectToDatabase();
         const newUser = new User(req.body);
         const savedUser = await newUser.save();
-        res.status(201).json(savedUser);
+        const { passwordHash, ...userWithoutPassword } = savedUser.toObject();
+        res.status(201).json(userWithoutPassword);
     }
     catch (error) {
         res.status(400).json({ error: 'Greška pri kreiranju korisnika' });
@@ -26,7 +27,7 @@ router.post('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         await connectToDatabase();
-        const user = await User.findById(req.params.id);
+        const user = await User.findById(req.params.id).select('-passwordHash');
         if (!user)
             return res.status(404).json({ error: 'Korisnik nije pronađen' });
         res.json(user);
@@ -38,7 +39,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         await connectToDatabase();
-        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).select('-passwordHash');
         if (!user)
             return res.status(404).json({ error: 'Korisnik nije pronađen' });
         res.json(user);
@@ -52,7 +53,7 @@ router.delete('/:id', async (req, res) => {
         await connectToDatabase();
         const user = await User.findByIdAndDelete(req.params.id);
         if (!user)
-            return res.status(404).json({ error: 'Greška pri brisanju korisnika' });
+            return res.status(404).json({ error: 'Korisnik nije pronađen' });
         res.json({ message: 'Korisnik obrisan' });
     }
     catch (error) {

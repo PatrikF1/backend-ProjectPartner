@@ -1,24 +1,37 @@
 import express from 'express';
 import { connectToDatabase } from '../db.js';
 import User from '../models/User.js';
-import { hashPassword } from '../middleware/hashPassword.js';
+import bcrypt from 'bcryptjs';
 const router = express.Router();
-router.post("/register", hashPassword, async (req, res) => {
-    const { name, lastname, email, phone, c_password } = req.body;
-    if (!name || !lastname || !email || !phone || !req.body.passwordHash || !c_password)
-        return res.status(400).json({ msg: 'Sva polja su obavezna' });
+router.post("/register", async (req, res) => {
+    const { name, lastname, email, phone, password, c_password } = req.body;
+    if (!name || !lastname || !email || !password || !c_password) {
+        return res.status(400).json({ msg: 'Sva obavezna polja su obavezna' });
+    }
+    if (password !== c_password) {
+        return res.status(400).json({ msg: 'Lozinke se ne podudaraju' });
+    }
     try {
         await connectToDatabase();
         const exists = await User.findOne({ email });
         if (exists)
             return res.status(409).json({ msg: 'Korisnik već postoji' });
+        const passwordHash = await bcrypt.hash(password, 10);
         const newUser = new User({
-            ime: `${name} ${lastname}`,
+            name,
+            lastname,
             email,
-            godine: phone
+            phone,
+            passwordHash
         });
         const savedUser = await newUser.save();
-        return res.status(201).json({ _id: savedUser._id, email });
+        return res.status(201).json({
+            _id: savedUser._id,
+            name: savedUser.name,
+            lastname: savedUser.lastname,
+            email: savedUser.email,
+            phone: savedUser.phone
+        });
     }
     catch (error) {
         return res.status(500).json({ msg: 'Greška pri registraciji' });

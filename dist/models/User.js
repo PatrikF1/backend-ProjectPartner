@@ -1,6 +1,11 @@
 import mongoose, { Schema } from 'mongoose';
 const UserSchema = new Schema({
-    ime: {
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    lastname: {
         type: String,
         required: true,
         trim: true
@@ -11,9 +16,14 @@ const UserSchema = new Schema({
         unique: true,
         lowercase: true
     },
-    godine: {
+    phone: {
         type: Number,
+        required: false,
         min: 0
+    },
+    passwordHash: {
+        type: String,
+        required: true
     }
 }, {
     timestamps: true
