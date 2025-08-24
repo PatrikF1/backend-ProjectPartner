@@ -60,6 +60,30 @@ router.post("/register", async (req: Request, res: Response) => {
 })
 
 
+router.post('/login', async (req: Request, res: Response) => {
+  const { email, password } = req.body as LoginBody
+  if (!email || !password) return res.status(400).json({ msg: 'Email i lozinka su obavezni' })
 
+  try {
+    await connectToDatabase()
+
+    const user = await User.findOne({ email })
+    if (!user) return res.status(401).json({ msg: 'Neispravni podaci' })
+
+    const ok = await bcrypt.compare(password, user.passwordHash)
+    if (!ok) return res.status(401).json({ msg: 'Neispravni podaci' })
+
+    return res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      lastname: user.lastname,
+      email: user.email,
+      phone: user.phone
+     
+    })
+  } catch {
+    return res.status(500).json({ msg: 'Greška pri prijavi' })
+  }
+})
 
 export default router

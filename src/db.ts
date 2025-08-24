@@ -1,17 +1,13 @@
-import mongoose from 'mongoose';
+import mongoose from 'mongoose'
+import 'dotenv/config'
 
-export async function connectToDatabase(): Promise<void> {
-  const uri = process.env.MONGO_URI;
+export async function connectToDatabase() {
+  const uri = process.env.MONGO_URI 
+  if (!uri) throw new Error('MONGO_URI nije postavljen')
 
-  if (!uri) {
-    throw new Error('MONGO_URI nije postavljen u .env');
-  }
+  await mongoose.connect(uri, {
+    dbName: process.env.MONGO_DB_NAME
+  })
 
-  try {
-    await mongoose.connect(uri);
-    console.log('MongoDB spojen sa Mongoose-om');
-  } catch (error) {
-    console.error('Greška pri povezivanju na MongoDB:', error);
-    throw error;
-  }
+  console.log('Mongoose connected to DB:', mongoose.connection.name)
 }
