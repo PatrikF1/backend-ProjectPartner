@@ -1,19 +1,62 @@
 import express from "express";
 import { connectToDatabase } from "../db.js";
+import User from "../models/User.js";
 const router = express.Router();
 router.get('/', async (req, res) => {
     try {
-        const db = await connectToDatabase();
-        let userCollection = db.collection('Users');
-        let allUsers = await userCollection.find().toArray();
-        if (!allUsers || allUsers.length === 0) {
-            return res.status(404).json({ msg: "Korisnici nisu pronađeni" });
-        }
-        res.status(200).json(allUsers);
+        await connectToDatabase();
+        const users = await User.find();
+        res.json(users);
     }
     catch (error) {
-        console.error('Greška pri dohvatanju korisnika:', error);
-        res.status(500).json({ msg: "Greška pri dohvatanju korisnika", error: error instanceof Error ? error.message : 'Nepoznata greška' });
+        res.status(500).json({ error: 'Greška pri dohvatanju korisnika' });
+    }
+});
+router.post('/', async (req, res) => {
+    try {
+        await connectToDatabase();
+        const newUser = new User(req.body);
+        const savedUser = await newUser.save();
+        res.status(201).json(savedUser);
+    }
+    catch (error) {
+        res.status(400).json({ error: 'Greška pri kreiranju korisnika' });
+    }
+});
+router.get('/:id', async (req, res) => {
+    try {
+        await connectToDatabase();
+        const user = await User.findById(req.params.id);
+        if (!user)
+            return res.status(404).json({ error: 'Korisnik nije pronađen' });
+        res.json(user);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Greška pri dohvatanju korisnika' });
+    }
+});
+router.put('/:id', async (req, res) => {
+    try {
+        await connectToDatabase();
+        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!user)
+            return res.status(404).json({ error: 'Korisnik nije pronađen' });
+        res.json(user);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Greška pri ažuriranju korisnika' });
+    }
+});
+router.delete('/:id', async (req, res) => {
+    try {
+        await connectToDatabase();
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user)
+            return res.status(404).json({ error: 'Greška pri brisanju korisnika' });
+        res.json({ message: 'Korisnik obrisan' });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Greška pri brisanju korisnika' });
     }
 });
 export default router;

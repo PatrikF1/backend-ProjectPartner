@@ -3,6 +3,7 @@ import express, { type Express, type Request, type Response} from "express"
 import cors from "cors"
 import dotenv from "dotenv"
 import userRoutes from "./routes/Users.js"
+import authRoutes from "./routes/Auth.js"
 
 dotenv.config();
 
@@ -17,7 +18,8 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Backend radi!!!')
 })
 
-app.use("/users", userRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 
 app.listen(PORT, error => {
   if (error) {
