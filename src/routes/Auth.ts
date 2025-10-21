@@ -2,6 +2,7 @@ import express, { Express, Response, Request } from 'express'
 import { connectToDatabase } from '../db.js'
 import User from '../models/User.js'
 import bcrypt from 'bcryptjs'
+import { generateToken } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -49,13 +50,16 @@ router.post("/register", async (req: Request, res: Response) => {
     })
     
     const savedUser = await newUser.save()
+    const token = generateToken(savedUser)
+    
     return res.status(201).json({ 
       _id: savedUser._id, 
       name: savedUser.name,
       lastname: savedUser.lastname,
       email: savedUser.email,
       phone: savedUser.phone,
-      isAdmin: savedUser.isAdmin
+      isAdmin: savedUser.isAdmin,
+      token
     })
   } catch (error) {
     return res.status(500).json({ msg: 'Greška pri registraciji' })
@@ -76,13 +80,16 @@ router.post('/login', async (req: Request, res: Response) => {
     const ok = await bcrypt.compare(password, user.passwordHash)
     if (!ok) return res.status(401).json({ msg: 'Neispravni podaci' })
 
+    const token = generateToken(user)
+
     return res.status(200).json({
       _id: user._id,
       name: user.name,
       lastname: user.lastname,
       email: user.email,
-      phone: user.phone
-     
+      phone: user.phone,
+      isAdmin: user.isAdmin,
+      token
     })
   } catch {
     return res.status(500).json({ msg: 'Greška pri prijavi' })

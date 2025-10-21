@@ -5,8 +5,6 @@ export interface ISpace extends Document {
   description: string;
   type: 'workspace' | 'project-space' | 'team-space' | 'meeting-room';
   capacity?: number;
-  location?: string;
-  amenities: string[];
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -37,16 +35,6 @@ const SpaceSchema: Schema = new Schema({
     min: 1,
     max: 100
   },
-  location: {
-    type: String,
-    required: false,
-    trim: true,
-    maxlength: 200
-  },
-  amenities: [{
-    type: String,
-    trim: true
-  }],
   isActive: {
     type: Boolean,
     default: true

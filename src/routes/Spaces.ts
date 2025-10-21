@@ -1,7 +1,7 @@
 import express, { Response, Request } from "express";
 import { connectToDatabase } from "../db.js";
 import Space from "../models/Space.js";
-import User from "../models/User.js";
+import { requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -10,8 +10,6 @@ interface CreateSpaceBody {
   description: string;
   type: 'workspace' | 'project-space' | 'team-space' | 'meeting-room';
   capacity?: number;
-  location?: string;
-  amenities?: string[];
 }
 
 interface UpdateSpaceBody {
@@ -19,44 +17,14 @@ interface UpdateSpaceBody {
   description?: string;
   type?: 'workspace' | 'project-space' | 'team-space' | 'meeting-room';
   capacity?: number;
-  location?: string;
-  amenities?: string[];
 }
-const requireAdmin = async (req: Request, res: Response, next: Function) => {
-  try {
-    const userId = req.headers['x-user-id'] as string;
-    
-    if (!userId) {
-      return res.status(401).json({ msg: 'ID korisnika je obavezan' });
-    }
-
-    await connectToDatabase();
-    const user = await User.findById(userId);
-    
-    if (!user) {
-      return res.status(404).json({ msg: 'Korisnik nije pronađen' });
-    }
-
-    if (!user.isAdmin) {
-      return res.status(403).json({ msg: 'Samo administratori mogu kreirati i upravljati prostorima' });
-    }
-
-    req.user = user;
-    next();
-  } catch (error) {
-    console.error('Greška pri provjeri administratorskog statusa:', error);
-    return res.status(500).json({ msg: 'Greška pri provjeri administratorskog statusa' });
-  }
-};
 
 router.post("/", requireAdmin, async (req: Request, res: Response) => {
   const { 
     name, 
     description, 
     type, 
-    capacity, 
-    location, 
-    amenities
+    capacity
   } = req.body as CreateSpaceBody;
 
   if (!name || !description || !type) {
@@ -71,8 +39,6 @@ router.post("/", requireAdmin, async (req: Request, res: Response) => {
       description,
       type,
       capacity,
-      location,
-      amenities: amenities || [],
       createdBy: req.user._id
     });
 
@@ -85,8 +51,6 @@ router.post("/", requireAdmin, async (req: Request, res: Response) => {
       description: savedSpace.description,
       type: savedSpace.type,
       capacity: savedSpace.capacity,
-      location: savedSpace.location,
-      amenities: savedSpace.amenities,
       createdBy: savedSpace.createdBy,
       createdAt: savedSpace.createdAt,
       updatedAt: savedSpace.updatedAt
