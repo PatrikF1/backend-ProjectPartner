@@ -12,6 +12,7 @@ interface RegisterBody {
   phone?: number
   password: string
   c_password: string
+  isAdmin?: boolean
 }
 
 interface LoginBody {
@@ -20,7 +21,7 @@ interface LoginBody {
 }
 
 router.post("/register", async (req: Request, res: Response) => { 
-  const { name, lastname, email, phone, password, c_password } = req.body as RegisterBody
+  const { name, lastname, email, phone, password, c_password, isAdmin } = req.body as RegisterBody
   
   if (!name || !lastname || !email || !password || !c_password) {
     return res.status(400).json({ msg: 'Sva obavezna polja su obavezna' })
@@ -43,7 +44,8 @@ router.post("/register", async (req: Request, res: Response) => {
       lastname,
       email, 
       phone,
-      passwordHash
+      passwordHash,
+      isAdmin: isAdmin || false
     })
     
     const savedUser = await newUser.save()
@@ -52,7 +54,8 @@ router.post("/register", async (req: Request, res: Response) => {
       name: savedUser.name,
       lastname: savedUser.lastname,
       email: savedUser.email,
-      phone: savedUser.phone
+      phone: savedUser.phone,
+      isAdmin: savedUser.isAdmin
     })
   } catch (error) {
     return res.status(500).json({ msg: 'Greška pri registraciji' })
