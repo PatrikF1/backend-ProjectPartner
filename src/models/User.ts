@@ -6,6 +6,7 @@ export interface IUser extends Document {
   email: string;
   phone?: number;
   passwordHash: string;
+  isAdmin: boolean;
 }
 
 const UserSchema: Schema = new Schema({
@@ -33,6 +34,10 @@ const UserSchema: Schema = new Schema({
   passwordHash: {
     type: String,
     required: true
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
