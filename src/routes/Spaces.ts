@@ -143,7 +143,6 @@ router.delete("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
 });
 
 
-// POST /api/spaces/:id/join - Prijava na space
 router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user._id;
@@ -155,22 +154,18 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
       if (!space) {
         return res.status(404).json({ msg: 'Space nije pronađen' });
       }
-  
-      // Provjeri je li korisnik već u space-u
+
       if (space.members.includes(userId)) {
         return res.status(400).json({ msg: 'Već ste u ovom space-u' });
       }
-  
-      // Provjeri kapacitet
+
       if (space.capacity && space.members.length >= space.capacity) {
         return res.status(400).json({ msg: 'Space je pun' });
       }
-  
-      // Dodaj korisnika u space
+
       space.members.push(userId);
       await space.save();
-  
-      // Populate members da dobijemo korisničke podatke
+
       await space.populate('members', 'name lastname email');
       await space.populate('createdBy', 'name lastname email');
   
@@ -181,7 +176,7 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
     }
   });
   
-  // POST /api/spaces/:id/leave - Napuštanje space-a
+  
   router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user._id;
@@ -194,16 +189,16 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
         return res.status(404).json({ msg: 'Space nije pronađen' });
       }
   
-      // Provjeri je li korisnik u space-u
+      
       if (!space.members.includes(userId)) {
         return res.status(400).json({ msg: 'Niste u ovom space-u' });
       }
   
-      // Ukloni korisnika iz space-a
+     
       space.members = space.members.filter((memberId: mongoose.Types.ObjectId) => memberId.toString() !== userId.toString());
       await space.save();
   
-      // Populate members da dobijemo korisničke podatke
+     
       await space.populate('members', 'name lastname email');
       await space.populate('createdBy', 'name lastname email');
   
