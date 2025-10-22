@@ -7,6 +7,7 @@ export interface ISpace extends Document {
   capacity?: number;
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
+  members: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,7 +44,10 @@ const SpaceSchema: Schema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  }
+  },
+  members: [{
+     type: mongoose.Schema.Types.ObjectId,
+    ref: 'User' }],
 }, {
   timestamps: true
 });
