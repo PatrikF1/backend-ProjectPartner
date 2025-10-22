@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import User from '../models/User.js';
 import { connectToDatabase } from '../db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'token_broj';
 
 export interface AuthRequest extends Request {
   user?: any;

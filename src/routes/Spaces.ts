@@ -1,7 +1,8 @@
 import express, { Response, Request } from "express";
 import { connectToDatabase } from "../db.js";
 import Space from "../models/Space.js";
-import { requireAdmin } from "../middleware/auth.js";
+import { requireAdmin, requireAuth, AuthRequest } from "../middleware/auth.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ interface UpdateSpaceBody {
   capacity?: number;
 }
 
-router.post("/", requireAdmin, async (req: Request, res: Response) => {
+router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
   const { 
     name, 
     description, 
@@ -61,12 +62,13 @@ router.post("/", requireAdmin, async (req: Request, res: Response) => {
   }
 });
 
-router.get("/", requireAdmin, async (req: Request, res: Response) => {
+router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
 
     const spaces = await Space.find()
       .populate('createdBy', 'name lastname email')
+      .populate('members', 'name lastname email')
       .sort({ createdAt: -1 });
 
     return res.status(200).json(spaces);
@@ -76,7 +78,7 @@ router.get("/", requireAdmin, async (req: Request, res: Response) => {
   }
 });
 
-router.get("/:id", requireAdmin, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
   try {
@@ -96,7 +98,7 @@ router.get("/:id", requireAdmin, async (req: Request, res: Response) => {
   }
 });
 
-router.put("/:id", requireAdmin, async (req: Request, res: Response) => {
+router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const updateData = req.body as UpdateSpaceBody;
 
@@ -121,7 +123,7 @@ router.put("/:id", requireAdmin, async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/:id", requireAdmin, async (req: Request, res: Response) => {
+router.delete("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
   try {
@@ -139,5 +141,77 @@ router.delete("/:id", requireAdmin, async (req: Request, res: Response) => {
     return res.status(500).json({ msg: 'Greška pri brisanju prostora' });
   }
 });
+
+
+// POST /api/spaces/:id/join - Prijava na space
+router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user._id;
+  
+    try {
+      await connectToDatabase();
+  
+      const space = await Space.findById(id);
+      if (!space) {
+        return res.status(404).json({ msg: 'Space nije pronađen' });
+      }
+  
+      // Provjeri je li korisnik već u space-u
+      if (space.members.includes(userId)) {
+        return res.status(400).json({ msg: 'Već ste u ovom space-u' });
+      }
+  
+      // Provjeri kapacitet
+      if (space.capacity && space.members.length >= space.capacity) {
+        return res.status(400).json({ msg: 'Space je pun' });
+      }
+  
+      // Dodaj korisnika u space
+      space.members.push(userId);
+      await space.save();
+  
+      // Populate members da dobijemo korisničke podatke
+      await space.populate('members', 'name lastname email');
+      await space.populate('createdBy', 'name lastname email');
+  
+      return res.status(200).json(space);
+    } catch (error) {
+      console.error('Greška pri pridruživanju space-u:', error);
+      return res.status(500).json({ msg: 'Greška pri pridruživanju space-u' });
+    }
+  });
+  
+  // POST /api/spaces/:id/leave - Napuštanje space-a
+  router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user._id;
+  
+    try {
+      await connectToDatabase();
+  
+      const space = await Space.findById(id);
+      if (!space) {
+        return res.status(404).json({ msg: 'Space nije pronađen' });
+      }
+  
+      // Provjeri je li korisnik u space-u
+      if (!space.members.includes(userId)) {
+        return res.status(400).json({ msg: 'Niste u ovom space-u' });
+      }
+  
+      // Ukloni korisnika iz space-a
+      space.members = space.members.filter((memberId: mongoose.Types.ObjectId) => memberId.toString() !== userId.toString());
+      await space.save();
+  
+      // Populate members da dobijemo korisničke podatke
+      await space.populate('members', 'name lastname email');
+      await space.populate('createdBy', 'name lastname email');
+  
+      return res.status(200).json(space);
+    } catch (error) {
+      console.error('Greška pri napuštanju space-a:', error);
+      return res.status(500).json({ msg: 'Greška pri napuštanju space-a' });
+    }
+  });
 
 export default router;
