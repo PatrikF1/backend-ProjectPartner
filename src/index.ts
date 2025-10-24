@@ -4,7 +4,7 @@ import cors from "cors"
 import dotenv from "dotenv"
 import userRoutes from "./routes/Users.js"
 import authRoutes from "./routes/Auth.js"
-import spaceRoutes from "./routes/Spaces.js"
+import projectRoutes from "./routes/Projects.js"
 
 dotenv.config();
 
@@ -21,7 +21,7 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/spaces", spaceRoutes);
+app.use("/api/projects", projectRoutes);
 
 app.listen(PORT, error => {
   if (error) {
