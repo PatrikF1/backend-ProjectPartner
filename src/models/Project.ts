@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface ISpace extends Document {
+export interface IProject extends Document {
   name: string;
   description: string;
   type: 'workspace' | 'project-space' | 'team-space' | 'meeting-room';
@@ -12,7 +12,7 @@ export interface ISpace extends Document {
   updatedAt: Date;
 }
 
-const SpaceSchema: Schema = new Schema({
+const ProjectSchema: Schema = new Schema({
   name: {
     type: String,
     required: true,
@@ -46,10 +46,11 @@ const SpaceSchema: Schema = new Schema({
     required: true
   },
   members: [{
-     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User' }],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 }, {
   timestamps: true
 });
 
-export default mongoose.model<ISpace>('Space', SpaceSchema);
+export default mongoose.model<IProject>('Project', ProjectSchema);
