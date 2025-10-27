@@ -1,9 +1,16 @@
 import jwt from 'jsonwebtoken';
+import type { JwtPayload } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User.js';
 import { connectToDatabase } from '../db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'token_broj';
+
+interface TokenPayload extends JwtPayload {
+  userId: string;
+  email: string;
+  isAdmin: boolean;
+}
 
 export interface AuthRequest extends Request {
   user?: any;
@@ -21,9 +28,11 @@ export const generateToken = (user: any) => {
   );
 };
 
-export const verifyToken = (token: string) => {
+export const verifyToken = (token: string): TokenPayload | null => {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (typeof decoded === 'string') return null;
+    return decoded as TokenPayload;
   } catch (error) {
     return null;
   }

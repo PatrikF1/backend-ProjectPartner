@@ -164,41 +164,6 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
   }
 });
 
-router.post("/:id/apply", requireAuth, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user._id;
-  const { message } = req.body;
-
-  try {
-    await connectToDatabase();
-
-    const project = await Project.findById(id);
-    if (!project) {
-      return res.status(404).json({ msg: 'Projekt nije pronađen' });
-    }
-
-    const isMember = project.members.some(member => member.toString() === userId.toString());
-    if (isMember) {
-      return res.status(400).json({ msg: 'Već ste član ovog projekta' });
-    }
-
-    if (project.capacity && project.members.length >= project.capacity) {
-      return res.status(400).json({ msg: 'Projekt je popunjen' });
-    }
-
-    project.members.push(userId);
-    await project.save();
-
-    await project.populate('createdBy', 'name lastname email');
-    await project.populate('members', 'name lastname email');
-
-    return res.status(200).json(project);
-  } catch (error) {
-    console.error('Greška pri prijavi na projekt:', error);
-    return res.status(500).json({ msg: 'Greška pri prijavi na projekt' });
-  }
-});
-
 router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const userId = req.user._id;
@@ -228,5 +193,6 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
     return res.status(500).json({ msg: 'Greška pri napuštanju projekta' });
   }
 });
+
 
 export default router;
