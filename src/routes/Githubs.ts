@@ -49,6 +49,34 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
+router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const id = req.params.id;
+    const userId = req.user._id.toString();
 
+    await connectToDatabase();
+
+    const githubLink = await Github.findById(id);
+
+    if (!githubLink) {
+      return res.status(404).json({ msg: "GitHub link nije pronađen" });
+    }
+
+    const createdByString = githubLink.createdBy.toString();
+    const isCreator = createdByString === userId;
+
+    if (!isCreator) {
+      return res.status(403).json({ msg: "Samo kreator može obrisati ovaj GitHub link" });
+    }
+
+    await Github.findByIdAndDelete(id);
+
+    return res.status(200).json({ msg: "GitHub link je uspješno obrisan" });
+  } 
+  catch (error) {
+    console.error("Greška pri brisanju GitHub linka:", error);
+    return res.status(500).json({ msg: "Greška pri brisanju GitHub linka" });
+  }
+});
 
 export default router;
