@@ -6,6 +6,7 @@ import userRoutes from "./routes/Users.js"
 import authRoutes from "./routes/Auth.js"
 import projectRoutes from "./routes/Projects.js"
 import githubRoutes from "./routes/Githubs.js"
+import postRoutes from "./routes/Posts.js"
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/github", githubRoutes);
+app.use("/api/posts", postRoutes);
 
 app.listen(PORT, error => {
   if (error) {
