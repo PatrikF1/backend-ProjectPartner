@@ -43,6 +43,22 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/my", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    await connectToDatabase();
+    const applications = await Application.find({ createdBy: req.user._id })
+      .populate('projectId', 'name')
+      .populate('createdBy', 'name lastname email')
+      .populate('team', 'name lastname email')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(applications);
+  } 
+  catch (error) {
+    return res.status(500).json({ msg: "Greška pri dohvatanju aplikacija" });
+  }
+});
+
 router.put("/:id/:action", requireAdmin, async (req: AuthRequest, res) => {
   try {
     await connectToDatabase();
