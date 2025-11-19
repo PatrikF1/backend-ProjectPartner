@@ -36,12 +36,10 @@ router.get("/dashboard", requireAuth, async (req: AuthRequest, res: Response) =>
       Application.find()
         .populate('projectId', 'name')
         .populate('createdBy', 'name lastname email')
-        .populate('team', 'name lastname email')
         .sort({ createdAt: -1 }),
       Application.find({ createdBy: userId })
         .populate('projectId', 'name')
         .populate('createdBy', 'name lastname email')
-        .populate('team', 'name lastname email')
         .sort({ createdAt: -1 })
     ]);
 
