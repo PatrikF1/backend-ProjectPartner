@@ -43,7 +43,6 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
     
     return res.status(201).json(savedProject);
   } catch (error) {
-    console.error('Greška pri kreiranju projekta:', error);
     return res.status(500).json({ msg: 'Greška pri kreiranju projekta' });
   }
 });
@@ -59,8 +58,22 @@ router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
 
     return res.status(200).json(projects);
   } catch (error) {
-    console.error('Greška pri dohvatanju projekata:', error);
     return res.status(500).json({ msg: 'Greška pri dohvatanju projekata' });
+  }
+});
+
+router.get("/my", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    await connectToDatabase();
+    const projects = await Project.find({ members: req.user._id })
+      .populate('createdBy', 'name lastname email')
+      .populate('members', 'name lastname email')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(projects);
+  } 
+  catch (error) {
+    return res.status(500).json({ msg: "Greška pri dohvatanju projekata" });
   }
 });
 
@@ -80,7 +93,6 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
 
     return res.status(200).json(project);
   } catch (error) {
-    console.error('Greška pri dohvatanju projekta:', error);
     return res.status(500).json({ msg: 'Greška pri dohvatanju projekta' });
   }
 });
@@ -106,7 +118,6 @@ router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
 
     return res.status(200).json(updatedProject);
   } catch (error) {
-    console.error('Greška pri ažuriranju projekta:', error);
     return res.status(500).json({ msg: 'Greška pri ažuriranju projekta' });
   }
 });
@@ -125,7 +136,6 @@ router.delete("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
 
     return res.status(200).json({ msg: 'Projekt je uspješno obrisan' });
   } catch (error) {
-    console.error('Greška pri brisanju projekta:', error);
     return res.status(500).json({ msg: 'Greška pri brisanju projekta' });
   }
 });
@@ -159,7 +169,6 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
 
     return res.status(200).json(project);
   } catch (error) {
-    console.error('Greška pri pridruživanju projektu:', error);
     return res.status(500).json({ msg: 'Greška pri pridruživanju projektu' });
   }
 });
@@ -189,10 +198,11 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
 
     return res.status(200).json(project);
   } catch (error) {
-    console.error('Greška pri napuštanju projekta:', error);
     return res.status(500).json({ msg: 'Greška pri napuštanju projekta' });
   }
 });
+
+
 
 
 export default router;

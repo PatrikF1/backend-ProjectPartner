@@ -8,6 +8,7 @@ import projectRoutes from "./routes/Projects.js"
 import githubRoutes from "./routes/Githubs.js"
 import postRoutes from "./routes/Posts.js"
 import applicationRoutes from "./routes/Applications.js"
+import taskRoutes from "./routes/Tasks.js"
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/github", githubRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/tasks", taskRoutes);
 
 app.listen(PORT, error => {
   if (error) {
