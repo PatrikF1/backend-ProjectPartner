@@ -13,10 +13,6 @@ const ApplicationSchema = new Schema({
         type: String,
         required: true,
     },
-    team: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-    },
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],

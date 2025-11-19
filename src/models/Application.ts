@@ -4,7 +4,6 @@ interface IApplication extends Document {
   projectId: mongoose.Types.ObjectId
   idea: string
   description: string
-  team?: mongoose.Types.ObjectId
   status: 'pending' | 'approved' | 'rejected'
   createdBy: mongoose.Types.ObjectId
   createdAt: Date
@@ -25,10 +24,6 @@ const ApplicationSchema = new Schema<IApplication>(
     description: {
       type: String,
       required: true,
-    },
-    team: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
     },
     status: {
       type: String,
