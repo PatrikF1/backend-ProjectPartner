@@ -9,6 +9,7 @@ import githubRoutes from "./routes/Githubs.js"
 import postRoutes from "./routes/Posts.js"
 import applicationRoutes from "./routes/Applications.js"
 import taskRoutes from "./routes/Tasks.js"
+import calendarRoutes from "./routes/Calendar.js"
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use("/api/github", githubRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/calendar", calendarRoutes);
 
 app.listen(PORT, error => {
   if (error) {
