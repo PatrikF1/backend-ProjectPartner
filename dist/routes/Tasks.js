@@ -12,6 +12,8 @@ router.post("/", requireAuth, async (req, res) => {
             name: req.body.name,
             description: req.body.description || '',
             status: req.body.status || 'not-started',
+            priority: req.body.priority || 'medium',
+            deadline: req.body.deadline ? new Date(req.body.deadline) : null,
             createdBy: req.user._id,
         }).save();
         await task.populate('createdBy', 'name lastname email');
@@ -67,6 +69,10 @@ router.put("/:id", requireAuth, async (req, res) => {
             task.name = req.body.name;
         if (req.body.description !== undefined)
             task.description = req.body.description;
+        if (req.body.priority)
+            task.priority = req.body.priority;
+        if (req.body.deadline !== undefined)
+            task.deadline = req.body.deadline ? new Date(req.body.deadline) : null;
         await task.save();
         await task.populate('createdBy', 'name lastname email');
         await task.populate('projectId', 'name');

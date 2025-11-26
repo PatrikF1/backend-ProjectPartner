@@ -23,6 +23,15 @@ const TaskSchema = new Schema({
         enum: ['not-started', 'in-progress', 'completed'],
         default: 'not-started',
     },
+    priority: {
+        type: String,
+        enum: ['low', 'medium', 'high'],
+        default: 'medium',
+    },
+    deadline: {
+        type: Date,
+        default: null,
+    },
     createdBy: {
         type: Schema.Types.ObjectId,
         ref: 'User',
