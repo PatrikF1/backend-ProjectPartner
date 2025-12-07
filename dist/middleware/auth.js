@@ -7,7 +7,7 @@ export const generateToken = (user) => {
         userId: user._id,
         email: user.email,
         isAdmin: user.isAdmin
-    }, JWT_SECRET, { expiresIn: '365d' });
+    }, JWT_SECRET, { expiresIn: '48h' });
 };
 export const verifyToken = (token) => {
     try {

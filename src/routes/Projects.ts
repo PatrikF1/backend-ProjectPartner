@@ -9,14 +9,14 @@ const router = express.Router();
 interface CreateProjectBody {
   name: string;
   description: string;
-  type: 'workspace' | 'project-space' | 'team-space' | 'meeting-room';
+  type: 'project' | 'feature' | 'bug/fix' | 'other' | 'task' | 'application';
   capacity?: number;
 }
 
 interface UpdateProjectBody {
   name?: string;
   description?: string;
-  type?: 'workspace' | 'project-space' | 'team-space' | 'meeting-room';
+  type?: 'project' | 'feature' | 'bug/fix' | 'other' | 'task' | 'application';
   capacity?: number;
 }
 

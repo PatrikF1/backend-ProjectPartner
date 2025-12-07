@@ -24,7 +24,7 @@ export const generateToken = (user: any) => {
       isAdmin: user.isAdmin 
     },
     JWT_SECRET,
-    { expiresIn: '365d' }
+    { expiresIn: '48h' }
   );
 };
 

@@ -14,7 +14,7 @@ const ProjectSchema = new Schema({
     },
     type: {
         type: String,
-        enum: ['workspace', 'project-space', 'team-space', 'meeting-room'],
+        enum: ['project', 'feature', 'bug/fix', 'other', 'task', 'application'],
         required: true
     },
     capacity: {

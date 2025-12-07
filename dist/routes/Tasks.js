@@ -117,5 +117,23 @@ router.get("/by-user", requireAuth, async (req, res) => {
         return res.status(500).json({ msg: "Greška pri dohvatanju taskova" });
     }
 });
+router.put("/:id/archive", requireAuth, async (req, res) => {
+    try {
+        await connectToDatabase();
+        const task = await Task.findById(req.params.id);
+        if (!task)
+            return res.status(404).json({ msg: "Task nije pronađen" });
+        task.isArchived = true;
+        task.archivedAt = new Date();
+        await task.save();
+        await task.populate('createdBy', 'name lastname email');
+        await task.populate('projectId', 'name');
+        await task.populate('applicationId', 'idea');
+        return res.status(200).json(task);
+    }
+    catch (error) {
+        return res.status(500).json({ msg: "Greška pri arhiviranju taska" });
+    }
+});
 export default router;
 //# sourceMappingURL=Tasks.js.map
