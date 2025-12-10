@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { connectToDatabase } from '../db.js';
 const router = express.Router();
 if (!process.env.OPENAI_API_KEY) {
-    console.warn('WARNING: OPENAI_API_KEY not set in environment variables');
+    console.warn('WARNING: OPENAI_API_KEY nije postavljen u environment variables');
 }
 const openai = process.env.OPENAI_API_KEY
     ? new OpenAI({
@@ -15,14 +15,14 @@ router.post('/chat', requireAuth, async (req, res) => {
     try {
         if (!openai) {
             return res.status(500).json({
-                msg: 'OpenAI API key is not configured',
-                error: 'Please set OPENAI_API_KEY in your .env file',
+                msg: 'OpenAI API key nije konfiguriran',
+                error: 'Postavite OPENAI_API_KEY u vašem .env fajlu',
             });
         }
         await connectToDatabase();
         const { message, context } = req.body;
         if (!message) {
-            return res.status(400).json({ msg: 'Message is required' });
+            return res.status(400).json({ msg: 'Potrebno je unijeti poruku' });
         }
         const projects = context?.projects || [];
         const tasks = context?.tasks || [];
