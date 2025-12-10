@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose'
 
-interface IApplication extends Document {
+export interface IApplication extends Document {
   projectId: mongoose.Types.ObjectId
   idea: string
   description: string

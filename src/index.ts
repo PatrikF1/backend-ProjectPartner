@@ -10,6 +10,7 @@ import postRoutes from "./routes/Posts.js"
 import applicationRoutes from "./routes/Applications.js"
 import taskRoutes from "./routes/Tasks.js"
 import calendarRoutes from "./routes/Calendar.js"
+import aiRoutes from "./routes/AI.js"
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use("/api", aiRoutes);
 
 app.listen(PORT, error => {
   if (error) {

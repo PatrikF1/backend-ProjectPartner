@@ -9,6 +9,7 @@ import postRoutes from "./routes/Posts.js";
 import applicationRoutes from "./routes/Applications.js";
 import taskRoutes from "./routes/Tasks.js";
 import calendarRoutes from "./routes/Calendar.js";
+import aiRoutes from "./routes/AI.js";
 dotenv.config();
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -25,6 +26,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use("/api", aiRoutes);
 app.listen(PORT, error => {
     if (error) {
         console.log('Greška prilikom pokretanja servera', error);
