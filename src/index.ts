@@ -11,6 +11,7 @@ import applicationRoutes from "./routes/Applications.js"
 import taskRoutes from "./routes/Tasks.js"
 import calendarRoutes from "./routes/Calendar.js"
 import aiRoutes from "./routes/AI.js"
+import { connectToDatabase } from "./db.js"
 
 dotenv.config();
 
@@ -35,10 +36,17 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api", aiRoutes);
 
-app.listen(PORT, error => {
+app.listen(PORT, async (error) => {
   if (error) {
     console.log('Greška prilikom pokretanja servera', error)
+    return
   }
 
-  console.log(`Aplikacija radi na http://localhost:${PORT}`)
+  try {
+    await connectToDatabase()
+    console.log(`Aplikacija radi na http://localhost:${PORT}`)
+  } catch (error) {
+    console.error('Greška pri povezivanju na bazu podataka:', error)
+    process.exit(1)
+  }
 })

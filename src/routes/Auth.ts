@@ -45,7 +45,11 @@ router.post("/register", async (req: Request, res: Response) => {
       token
     });
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri registraciji' });
+    console.error('Greška pri registraciji:', error);
+    return res.status(500).json({ 
+      msg: 'Greška pri registraciji',
+      error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
   }
 });
 
@@ -76,7 +80,11 @@ router.post('/login', async (req: Request, res: Response) => {
       token
     });
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri prijavi' });
+    console.error('Greška pri prijavi:', error);
+    return res.status(500).json({ 
+      msg: 'Greška pri prijavi',
+      error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
   }
 });
 

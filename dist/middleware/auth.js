@@ -36,6 +36,7 @@ export const requireAuth = async (req, res, next) => {
         next();
     }
     catch (error) {
+        console.error('Greška pri provjeri autentifikacije:', error);
         return res.status(500).json({ msg: 'Greška pri provjeri autentifikacije' });
     }
 };
@@ -57,6 +58,7 @@ export const requireAdmin = async (req, res, next) => {
         next();
     }
     catch (error) {
+        console.error('Greška pri provjeri administratorskog statusa:', error);
         return res.status(500).json({ msg: 'Greška pri provjeri administratorskog statusa' });
     }
 };
