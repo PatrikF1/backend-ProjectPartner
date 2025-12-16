@@ -4,8 +4,6 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/Users.js";
 import authRoutes from "./routes/Auth.js";
 import projectRoutes from "./routes/Projects.js";
-import githubRoutes from "./routes/Githubs.js";
-import postRoutes from "./routes/Posts.js";
 import applicationRoutes from "./routes/Applications.js";
 import taskRoutes from "./routes/Tasks.js";
 import calendarRoutes from "./routes/Calendar.js";
@@ -22,8 +20,6 @@ app.get('/', (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
-app.use("/api/github", githubRoutes);
-app.use("/api/posts", postRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/calendar", calendarRoutes);
