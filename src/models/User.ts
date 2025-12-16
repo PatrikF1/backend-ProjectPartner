@@ -7,6 +7,7 @@ export interface IUser extends Document {
   phone?: number;
   passwordHash: string;
   isAdmin: boolean;
+  imageUrl?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -38,6 +39,10 @@ const UserSchema: Schema = new Schema({
   isAdmin: {
     type: Boolean,
     default: false
+  },
+  imageUrl: {
+    type: String,
+    required: false
   }
 }, {
   timestamps: true

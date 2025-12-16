@@ -8,9 +8,8 @@ export async function connectToDatabase() {
     if (!uri)
         throw new Error('MONGO_URI nije postavljen');
     try {
-        await mongoose.connect(uri, {
-            dbName: process.env.MONGO_DB_NAME
-        });
+        const dbName = process.env.MONGO_DB_NAME || 'ProjectPartner';
+        await mongoose.connect(uri, { dbName });
         console.log('Mongoose connected to DB:', mongoose.connection.name);
     }
     catch (error) {

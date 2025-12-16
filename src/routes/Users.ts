@@ -56,4 +56,32 @@ router.get("/dashboard", requireAuth, async (req: AuthRequest, res: Response) =>
   }
 });
 
+router.put("/profile-image", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.body.image) {
+      return res.status(400).json({ msg: 'No image provided' });
+    }
+
+    await connectToDatabase();
+    
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    user.imageUrl = req.body.image;
+    await user.save();
+
+    return res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      lastname: user.lastname,
+      email: user.email,
+      phone: user.phone,
+      isAdmin: user.isAdmin,
+      imageUrl: user.imageUrl
+    });
+  } catch (error: any) {
+    return res.status(500).json({ msg: 'Greška pri upload-u slike' });
+  }
+});
+
 export default router;
