@@ -24,7 +24,7 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
   const { name, description, type, capacity } = req.body as CreateProjectBody;
 
   if (!name || !description || !type) {
-    return res.status(400).json({ msg: 'Naziv, opis i tip projekta su obavezni' });
+    return res.status(400).json({ msg: 'Name, description and project type are required' });
   }
 
   try {
@@ -43,7 +43,7 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
     
     return res.status(201).json(savedProject);
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri kreiranju projekta' });
+    return res.status(500).json({ msg: 'Error creating project' });
   }
 });
 
@@ -58,7 +58,7 @@ router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
 
     return res.status(200).json(projects);
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri dohvatanju projekata' });
+    return res.status(500).json({ msg: 'Error fetching projects' });
   }
 });
 
@@ -88,12 +88,12 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
       .populate('members', 'name lastname email');
 
     if (!project) {
-      return res.status(404).json({ msg: 'Projekt nije pronađen' });
+      return res.status(404).json({ msg: 'Project not found' });
     }
 
     return res.status(200).json(project);
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri dohvatanju projekta' });
+    return res.status(500).json({ msg: 'Error fetching project' });
   }
 });
 
@@ -118,7 +118,7 @@ router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
 
     return res.status(200).json(updatedProject);
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri ažuriranju projekta' });
+    return res.status(500).json({ msg: 'Error updating project' });
   }
 });
 
@@ -134,9 +134,9 @@ router.delete("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ msg: 'Projekt nije pronađen' });
     }
 
-    return res.status(200).json({ msg: 'Projekt je uspješno obrisan' });
+    return res.status(200).json({ msg: 'Project successfully deleted' });
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri brisanju projekta' });
+    return res.status(500).json({ msg: 'Error deleting project' });
   }
 });
 
@@ -149,16 +149,16 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
 
     const project = await Project.findById(id);
     if (!project) {
-      return res.status(404).json({ msg: 'Projekt nije pronađen' });
+      return res.status(404).json({ msg: 'Project not found' });
     }
 
     const isMember = project.members.some(member => member.toString() === userId.toString());
     if (isMember) {
-      return res.status(400).json({ msg: 'Već ste član ovog projekta' });
+      return res.status(400).json({ msg: 'You are already a member of this project' });
     }
 
     if (project.capacity && project.members.length >= project.capacity) {
-      return res.status(400).json({ msg: 'Projekt je popunjen' });
+      return res.status(400).json({ msg: 'Project is full' });
     }
 
     project.members.push(userId);
@@ -169,7 +169,7 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
 
     return res.status(200).json(project);
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri pridruživanju projektu' });
+    return res.status(500).json({ msg: 'Error joining project' });
   }
 });
 
@@ -182,12 +182,12 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
 
     const project = await Project.findById(id);
     if (!project) {
-      return res.status(404).json({ msg: 'Projekt nije pronađen' });
+      return res.status(404).json({ msg: 'Project not found' });
     }
 
     const memberIndex = project.members.findIndex(member => member.toString() === userId.toString());
     if (memberIndex === -1) {
-      return res.status(400).json({ msg: 'Niste član ovog projekta' });
+      return res.status(400).json({ msg: 'You are not a member of this project' });
     }
 
     project.members.splice(memberIndex, 1);
@@ -198,7 +198,7 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
 
     return res.status(200).json(project);
   } catch (error) {
-    return res.status(500).json({ msg: 'Greška pri napuštanju projekta' });
+    return res.status(500).json({ msg: 'Error leaving project' });
   }
 });
 

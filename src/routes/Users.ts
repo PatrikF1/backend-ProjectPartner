@@ -52,7 +52,7 @@ router.get("/dashboard", requireAuth, async (req: AuthRequest, res: Response) =>
     });
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri dohvatanju dashboard podataka" });
+    return res.status(500).json({ msg: "Error fetching dashboard data" });
   }
 });
 

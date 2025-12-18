@@ -21,7 +21,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     return res.status(201).json(application);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri kreiranju aplikacije" });
+    return res.status(500).json({ msg: "Error creating application" });
   }
 });
 
@@ -37,7 +37,7 @@ router.get("/", requireAuth, async (req, res) => {
     return res.status(200).json(applications);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri dohvatanju aplikacija" });
+    return res.status(500).json({ msg: "Error fetching applications" });
   }
 });
 
@@ -52,7 +52,7 @@ router.get("/my", requireAuth, async (req: AuthRequest, res) => {
     return res.status(200).json(applications);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri dohvatanju aplikacija" });
+    return res.status(500).json({ msg: "Error fetching applications" });
   }
 });
 
@@ -60,7 +60,7 @@ router.put("/:id/:action", requireAdmin, async (req: AuthRequest, res) => {
   try {
     await connectToDatabase();
     const application = await Application.findById(req.params.id);
-    if (!application) return res.status(404).json({ msg: "Aplikacija nije pronađena" });
+    if (!application) return res.status(404).json({ msg: "Application not found" });
     
     application.status = req.params.action === 'approve' ? 'approved' : 'rejected';
     await application.save();
@@ -79,7 +79,7 @@ router.put("/:id/:action", requireAdmin, async (req: AuthRequest, res) => {
     return res.status(200).json(application);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri ažuriranju aplikacije" });
+    return res.status(500).json({ msg: "Error updating application" });
   }
 });
 

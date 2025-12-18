@@ -26,15 +26,15 @@ app.use("/api/calendar", calendarRoutes);
 app.use("/api", aiRoutes);
 app.listen(PORT, async (error) => {
     if (error) {
-        console.log('Greška prilikom pokretanja servera', error);
+        console.log('Error starting server', error);
         return;
     }
     try {
         await connectToDatabase();
-        console.log(`Aplikacija radi na http://localhost:${PORT}`);
+        console.log(`Application running on http://localhost:${PORT}`);
     }
     catch (error) {
-        console.error('Greška pri povezivanju na bazu podataka:', error);
+        console.error('Error connecting to database:', error);
         process.exit(1);
     }
 });

@@ -21,7 +21,7 @@ router.post("/events", requireAuth, async (req: AuthRequest, res) => {
     return res.status(201).json(event);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri kreiranju eventa" });
+    return res.status(500).json({ msg: "Error creating event" });
   }
 });
 
@@ -37,7 +37,7 @@ router.get("/events", requireAuth, async (req: AuthRequest, res) => {
     return res.status(200).json(events);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri dohvatanju eventova" });
+    return res.status(500).json({ msg: "Error fetching events" });
   }
 });
 
@@ -45,20 +45,20 @@ router.delete("/events/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     await connectToDatabase();
     const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ msg: "Event nije pronađen" });
+    if (!event) return res.status(404).json({ msg: "Event not found" });
 
     const isAdmin = req.user?.isAdmin === true;
     const isOwner = String(event.createdBy) === String(req.user._id);
 
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({ msg: "Samo owner ili admin može obrisati event" });
+      return res.status(403).json({ msg: "Only owner or admin can delete event" });
     }
 
     await Event.findByIdAndDelete(req.params.id);
-    return res.status(200).json({ msg: "Event je uspješno obrisan" });
+    return res.status(200).json({ msg: "Event successfully deleted" });
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri brisanju eventa" });
+    return res.status(500).json({ msg: "Error deleting event" });
   }
 });
 

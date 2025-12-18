@@ -9,17 +9,17 @@ const router = express.Router();
 router.post("/register", async (req: Request, res: Response) => { 
   try {
     if (!req.body.email || !req.body.password) {
-      return res.status(400).json({ msg: 'Email i lozinka su obavezni' });
+      return res.status(400).json({ msg: 'Email and password are required' });
     }
     
     if (req.body.password !== req.body.c_password) {
-      return res.status(400).json({ msg: 'Lozinke se ne podudaraju' });
+      return res.status(400).json({ msg: 'Passwords do not match' });
     }
 
     await connectToDatabase();
     
     const exists = await User.findOne({ email: req.body.email });
-    if (exists) return res.status(409).json({ msg: 'Korisnik već postoji' });
+    if (exists) return res.status(409).json({ msg: 'User already exists' });
 
     const passwordHash = await bcrypt.hash(req.body.password, 10);
     
@@ -45,9 +45,9 @@ router.post("/register", async (req: Request, res: Response) => {
       token
     });
   } catch (error) {
-    console.error('Greška pri registraciji:', error);
+    console.error('Registration error:', error);
     return res.status(500).json({ 
-      msg: 'Greška pri registraciji',
+      msg: 'Error during registration',
       error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
@@ -57,16 +57,16 @@ router.post("/register", async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     if (!req.body.email || !req.body.password) {
-      return res.status(400).json({ msg: 'Email i lozinka su obavezni' });
+      return res.status(400).json({ msg: 'Email and password are required' });
     }
 
     await connectToDatabase();
 
     const user = await User.findOne({ email: req.body.email });
-    if (!user) return res.status(401).json({ msg: 'Neispravni podaci' });
+    if (!user) return res.status(401).json({ msg: 'Invalid credentials' });
 
     const ok = await bcrypt.compare(req.body.password, user.passwordHash);
-    if (!ok) return res.status(401).json({ msg: 'Neispravni podaci' });
+    if (!ok) return res.status(401).json({ msg: 'Invalid credentials' });
 
     const token = generateToken(user);
 
@@ -80,9 +80,9 @@ router.post('/login', async (req: Request, res: Response) => {
       token
     });
   } catch (error) {
-    console.error('Greška pri prijavi:', error);
+    console.error('Login error:', error);
     return res.status(500).json({ 
-      msg: 'Greška pri prijavi',
+      msg: 'Error during login',
       error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }

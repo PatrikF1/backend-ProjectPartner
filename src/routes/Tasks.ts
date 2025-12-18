@@ -24,7 +24,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     return res.status(201).json(task);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri kreiranju taska" });
+    return res.status(500).json({ msg: "Error creating task" });
   }
 });
 
@@ -41,7 +41,7 @@ router.get("/", requireAuth, async (req, res) => {
     return res.status(200).json(tasks);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri dohvatanju taskova" });
+    return res.status(500).json({ msg: "Error fetching tasks" });
   }
 });
 
@@ -61,7 +61,7 @@ router.get("/project/:projectId/application/:applicationId", requireAuth, async 
     return res.status(200).json(tasks);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri dohvatanju taskova" });
+    return res.status(500).json({ msg: "Error fetching tasks" });
   }
 });
 
@@ -70,7 +70,7 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     await connectToDatabase();
     const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ msg: "Task nije pronađen" });
+    if (!task) return res.status(404).json({ msg: "Task not found" });
     
     if (req.body.status) task.status = req.body.status;
     if (req.body.name) task.name = req.body.name;
@@ -86,7 +86,7 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res) => {
     return res.status(200).json(task);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri ažuriranju taska" });
+    return res.status(500).json({ msg: "Error updating task" });
   }
 });
 
@@ -94,10 +94,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
   try {
     await connectToDatabase();
     await Task.findByIdAndDelete(req.params.id);
-    return res.status(200).json({ msg: "Task je uspješno obrisan" });
+    return res.status(200).json({ msg: "Task successfully deleted" });
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri brisanju taska" });
+    return res.status(500).json({ msg: "Error deleting task" });
   }
 });
 
@@ -106,7 +106,7 @@ router.get("/by-user", requireAuth, async (req: AuthRequest, res) => {
     await connectToDatabase();
     
     if (!req.user?.isAdmin) {
-      return res.status(403).json({ msg: "Samo admin može pristupiti" });
+      return res.status(403).json({ msg: "Only admin can access" });
     }
 
     const query: any = {};
@@ -123,7 +123,7 @@ router.get("/by-user", requireAuth, async (req: AuthRequest, res) => {
     return res.status(200).json(tasks);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri dohvatanju taskova" });
+    return res.status(500).json({ msg: "Error fetching tasks" });
   }
 });
 
@@ -131,7 +131,7 @@ router.put("/:id/archive", requireAuth, async (req: AuthRequest, res) => {
   try {
     await connectToDatabase();
     const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ msg: "Task nije pronađen" });
+    if (!task) return res.status(404).json({ msg: "Task not found" });
 
     task.isArchived = true;
     task.archivedAt = new Date();
@@ -144,7 +144,7 @@ router.put("/:id/archive", requireAuth, async (req: AuthRequest, res) => {
     return res.status(200).json(task);
   } 
   catch (error) {
-    return res.status(500).json({ msg: "Greška pri arhiviranju taska" });
+    return res.status(500).json({ msg: "Error archiving task" });
   }
 });
 

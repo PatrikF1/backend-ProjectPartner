@@ -41,41 +41,41 @@ export const verifyToken = (token: string): TokenPayload | null => {
 export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization?.substring(7);
-    if (!token) return res.status(401).json({ msg: 'Token za pristup je obavezan' });
+    if (!token) return res.status(401).json({ msg: 'Access token is required' });
 
     const decoded = verifyToken(token);
-    if (!decoded) return res.status(401).json({ msg: 'Neispravan token' });
+    if (!decoded) return res.status(401).json({ msg: 'Invalid token' });
 
     await connectToDatabase();
     const user = await User.findById(decoded.userId);
-    if (!user) return res.status(404).json({ msg: 'Korisnik nije pronađen' });
+    if (!user) return res.status(404).json({ msg: 'User not found' });
 
     req.user = user;
     next();
   } catch (error) {
-    console.error('Greška pri provjeri autentifikacije:', error);
-    return res.status(500).json({ msg: 'Greška pri provjeri autentifikacije' });
+    console.error('Authentication error:', error);
+    return res.status(500).json({ msg: 'Error during authentication' });
   }
 };
 
 export const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization?.substring(7);
-    if (!token) return res.status(401).json({ msg: 'Token za pristup je obavezan' });
+    if (!token) return res.status(401).json({ msg: 'Access token is required' });
 
     const decoded = verifyToken(token);
-    if (!decoded) return res.status(401).json({ msg: 'Neispravan token' });
+    if (!decoded) return res.status(401).json({ msg: 'Invalid token' });
 
     await connectToDatabase();
     const user = await User.findById(decoded.userId);
-    if (!user) return res.status(404).json({ msg: 'Korisnik nije pronađen' });
+    if (!user) return res.status(404).json({ msg: 'User not found' });
 
-    if (!user.isAdmin) return res.status(403).json({ msg: 'Samo administratori mogu pristupiti' });
+    if (!user.isAdmin) return res.status(403).json({ msg: 'Only administrators can access' });
 
     req.user = user;
     next();
   } catch (error) {
-    console.error('Greška pri provjeri administratorskog statusa:', error);
-    return res.status(500).json({ msg: 'Greška pri provjeri administratorskog statusa' });
+    console.error('Admin check error:', error);
+    return res.status(500).json({ msg: 'Error checking admin status' });
   }
 };
