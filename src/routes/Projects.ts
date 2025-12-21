@@ -2,7 +2,6 @@ import express, { Response, Request } from "express";
 import { connectToDatabase } from "../db.js";
 import Project from "../models/Project.js";
 import { requireAdmin, requireAuth, AuthRequest } from "../middleware/auth.js";
-import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -78,12 +77,10 @@ router.get("/my", requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-
   try {
     await connectToDatabase();
 
-    const project = await Project.findById(id)
+    const project = await Project.findById(req.params.id)
       .populate('createdBy', 'name lastname email')
       .populate('members', 'name lastname email');
 
@@ -98,40 +95,36 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  const updateData = req.body as UpdateProjectBody;
-
   try {
     await connectToDatabase();
 
-    const updatedProject = await Project.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    )
-      .populate('createdBy', 'name lastname email')
-      .populate('members', 'name lastname email');
-
-    if (!updatedProject) {
-      return res.status(404).json({ msg: 'Projekt nije pronađen' });
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ msg: 'Project not found' });
     }
 
-    return res.status(200).json(updatedProject);
+    if (req.body.name) project.name = req.body.name;
+    if (req.body.description) project.description = req.body.description;
+    if (req.body.type) project.type = req.body.type;
+    if (req.body.capacity) project.capacity = req.body.capacity;
+
+    await project.save();
+    await project.populate('createdBy', 'name lastname email');
+    await project.populate('members', 'name lastname email');
+
+    return res.status(200).json(project);
   } catch (error) {
     return res.status(500).json({ msg: 'Error updating project' });
   }
 });
 
 router.delete("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-
   try {
     await connectToDatabase();
 
-    const deletedProject = await Project.findByIdAndDelete(id);
-
+    const deletedProject = await Project.findByIdAndDelete(req.params.id);
     if (!deletedProject) {
-      return res.status(404).json({ msg: 'Projekt nije pronađen' });
+      return res.status(404).json({ msg: 'Project not found' });
     }
 
     return res.status(200).json({ msg: 'Project successfully deleted' });
@@ -141,18 +134,17 @@ router.delete("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
 });
 
 router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user._id;
-
   try {
     await connectToDatabase();
 
-    const project = await Project.findById(id);
+    const project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ msg: 'Project not found' });
     }
 
-    const isMember = project.members.some(member => member.toString() === userId.toString());
+    const isMember = project.members.some(member => 
+      member.toString() === req.user._id.toString()
+    );
     if (isMember) {
       return res.status(400).json({ msg: 'You are already a member of this project' });
     }
@@ -161,9 +153,8 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
       return res.status(400).json({ msg: 'Project is full' });
     }
 
-    project.members.push(userId);
+    project.members.push(req.user._id);
     await project.save();
-
     await project.populate('createdBy', 'name lastname email');
     await project.populate('members', 'name lastname email');
 
@@ -174,25 +165,23 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
 });
 
 router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user._id;
-
   try {
     await connectToDatabase();
 
-    const project = await Project.findById(id);
+    const project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ msg: 'Project not found' });
     }
 
-    const memberIndex = project.members.findIndex(member => member.toString() === userId.toString());
+    const memberIndex = project.members.findIndex(member => 
+      member.toString() === req.user._id.toString()
+    );
     if (memberIndex === -1) {
       return res.status(400).json({ msg: 'You are not a member of this project' });
     }
 
     project.members.splice(memberIndex, 1);
     await project.save();
-
     await project.populate('createdBy', 'name lastname email');
     await project.populate('members', 'name lastname email');
 
@@ -201,8 +190,5 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
     return res.status(500).json({ msg: 'Error leaving project' });
   }
 });
-
-
-
 
 export default router;

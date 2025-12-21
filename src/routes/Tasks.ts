@@ -1,6 +1,7 @@
 import express from "express";
 import { connectToDatabase } from "../db.js";
 import Task from "../models/Task.js";
+import Project from "../models/Project.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -8,7 +9,8 @@ const router = express.Router();
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   try {
     await connectToDatabase();
-    const task = await new Task({
+    
+    const task = new Task({
       projectId: req.body.projectId,
       applicationId: req.body.applicationId || null,
       name: req.body.name,
@@ -16,14 +18,16 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       status: req.body.status || 'not-started',
       priority: req.body.priority || 'medium',
       deadline: req.body.deadline ? new Date(req.body.deadline) : null,
-      createdBy: req.user._id,
-    }).save();
+      createdBy: req.user._id
+    });
+
+    await task.save();
     await task.populate('createdBy', 'name lastname email');
     await task.populate('projectId', 'name');
     await task.populate('applicationId', 'idea');
+    
     return res.status(201).json(task);
-  } 
-  catch (error) {
+  } catch (error) {
     return res.status(500).json({ msg: "Error creating task" });
   }
 });
@@ -45,6 +49,27 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/my", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    await connectToDatabase();
+
+    const userProjects = await Project.find({ members: req.user._id });
+    const projectIds = userProjects.map(p => p._id);
+    const tasks = await Task.find({
+      projectId: { $in: projectIds },
+      isArchived: false
+    })
+      .populate('createdBy', 'name lastname email')
+      .populate('projectId', 'name')
+      .populate('applicationId', 'idea')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(tasks);
+  } catch (error) {
+    return res.status(500).json({ msg: "Error fetching tasks" });
+  }
+});
+
 router.get("/project/:projectId/application/:applicationId", requireAuth, async (req: AuthRequest, res) => {
   try {
     await connectToDatabase();
@@ -59,12 +84,10 @@ router.get("/project/:projectId/application/:applicationId", requireAuth, async 
       .sort({ createdAt: -1 });
 
     return res.status(200).json(tasks);
-  } 
-  catch (error) {
+  } catch (error) {
     return res.status(500).json({ msg: "Error fetching tasks" });
   }
 });
-
 
 router.put("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
