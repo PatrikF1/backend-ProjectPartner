@@ -101,32 +101,6 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/by-user", requireAuth, async (req: AuthRequest, res) => {
-  try {
-    await connectToDatabase();
-    
-    if (!req.user?.isAdmin) {
-      return res.status(403).json({ msg: "Only admin can access" });
-    }
-
-    const query: any = {};
-    if (req.query.userId) query.createdBy = req.query.userId;
-    if (req.query.applicationId) query.applicationId = req.query.applicationId;
-    if (req.query.projectId) query.projectId = req.query.projectId;
-
-    const tasks = await Task.find(query)
-      .populate('createdBy', 'name lastname email')
-      .populate('projectId', 'name')
-      .populate('applicationId', 'idea')
-      .sort({ createdAt: -1 });
-
-    return res.status(200).json(tasks);
-  } 
-  catch (error) {
-    return res.status(500).json({ msg: "Error fetching tasks" });
-  }
-});
-
 router.put("/:id/archive", requireAuth, async (req: AuthRequest, res) => {
   try {
     await connectToDatabase();
