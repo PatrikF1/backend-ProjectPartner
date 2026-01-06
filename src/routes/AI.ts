@@ -33,69 +33,24 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ msg: 'Message is required' });
     }
 
-    var projects = [];
-    if (context && context.projects) {
-      projects = context.projects;
-    }
+    var projects = context?.projects || [];
+    var tasks = context?.tasks || [];
+    var applications = context?.applications || [];
 
-    var tasks = [];
-    if (context && context.tasks) {
-      tasks = context.tasks;
-    }
+    const systemPrompt = `You are an AI assistant for ProjectPartner. Help users manage projects and tasks.
 
-    var applications = [];
-    if (context && context.applications) {
-      applications = context.applications;
-    }
-    
-    var currentDate = new Date().toISOString().split('T')[0];
-    var totalProjects = projects.length;
-    
-    var activeTasks = 0;
-    for (var i = 0; i < tasks.length; i++) {
-      if (tasks[i].status !== 'completed') {
-        activeTasks = activeTasks + 1;
-      }
-    }
-    
-    var pendingApps = 0;
-    for (var j = 0; j < applications.length; j++) {
-      if (applications[j].status === 'pending') {
-        pendingApps = pendingApps + 1;
-      }
-    }
-    
-    var today = new Date();
-    var overdueTasks = 0;
-    for (var k = 0; k < tasks.length; k++) {
-      if (tasks[k].deadline && tasks[k].status !== 'completed') {
-        var taskDeadline = new Date(tasks[k].deadline);
-        if (taskDeadline < today) {
-          overdueTasks = overdueTasks + 1;
-        }
-      }
-    }
-
-    const systemPrompt = `You are a helpful AI assistant for a project management system called ProjectPartner.
-
-## Your Role
-You help users manage their projects, tasks, and applications. Be proactive, concise, and action-oriented in your responses. You can also CREATE tasks and projects when users request it.
-
-## Action Capabilities
-When a user asks you to create a task or project, you MUST respond with a JSON object containing both a message and actions array.
-
-Response format:
+When user asks to create a task or project, respond with JSON:
 {
-  "message": "I'll create that task for you.",
+  "message": "I'll create that for you.",
   "actions": [
     {
       "type": "create_task",
       "data": {
         "name": "Task name",
-        "projectId": "project_id_here",
-        "description": "Task description",
+        "projectId": "project_id",
+        "description": "Description",
         "priority": "low|medium|high",
-        "deadline": "YYYY-MM-DD" (optional)
+        "deadline": "YYYY-MM-DD"
       }
     }
   ]
@@ -103,79 +58,21 @@ Response format:
 
 OR for projects:
 {
-  "message": "I'll create that project for you.",
+  "message": "I'll create that project.",
   "actions": [
     {
       "type": "create_project",
       "data": {
         "name": "Project name",
-        "description": "Project description",
+        "description": "Description",
         "type": "project|feature|bug/fix|task|application|other",
-        "capacity": number (optional)
+        "capacity": number
       }
     }
   ]
 }
 
-IMPORTANT: 
-- Always return valid JSON when creating tasks/projects
-- For create_task: projectId is REQUIRED - use a project ID from the user's available projects
-- For create_project: only admins can create projects
-- If user doesn't specify projectId for task, try to infer from context or ask
-- If user doesn't specify type for project, default to "project"
-- Priority defaults to "medium" if not specified
-- Always include both "message" and "actions" in your response
-
-## User Context
-The user has the following data available:
-- Projects: ${JSON.stringify(projects)}
-- Tasks: ${JSON.stringify(tasks)}
-- Applications: ${JSON.stringify(applications)}
-- User ID: ${context?.userId || req.user?.id || 'Unknown'}
-
-## Quick Statistics
-- Total Projects: ${totalProjects}
-- Active Tasks: ${activeTasks}
-- Pending Applications: ${pendingApps}
-- Overdue Tasks: ${overdueTasks}
-- Current Date: ${currentDate}
-
-## Data Structure Understanding
-- **Projects**: Have properties like name, description, type (project/feature/bug-fix/task/application/other), capacity, members, createdBy, and _id
-- **Tasks**: Have properties like name, description, deadline, priority (low/medium/high), status (pending/in-progress/completed), createdBy, applicationId, and _id
-- **Applications**: Have properties like idea, description, status (pending/approved/rejected), projectId, createdBy, and _id
-
-## Response Guidelines
-1. **Be Specific**: When referencing projects, tasks, or applications, use their actual names and IDs when available
-2. **Provide Actionable Insights**: Don't just list data - analyze it and provide useful insights
-3. **Use Natural Language**: Format dates, priorities, and statuses in a human-readable way
-4. **Handle Empty Data**: If arrays are empty, suggest next steps (e.g., "You don't have any tasks yet. Would you like help creating one?")
-5. **Prioritize Urgency**: When discussing tasks, highlight those with approaching deadlines or high priority. ${overdueTasks > 0 ? `⚠️ You have ${overdueTasks} overdue task(s) that need immediate attention!` : ''}
-6. **Status Awareness**: For applications, explain what pending/approved/rejected means and suggest actions
-7. **Be Concise**: Keep responses brief but informative - aim for 2-4 sentences unless the user asks for detailed analysis
-8. **Time Awareness**: Consider the current date (${currentDate}) when discussing deadlines and priorities
-
-## Common Questions You Should Handle
-- "What projects do I have?" - List projects with key details
-- "Show me my tasks" - List tasks grouped by status or priority
-- "What's my workload?" - Analyze task distribution and deadlines
-- "Help me prioritize" - Suggest task prioritization based on deadlines and importance
-- "Status of my applications" - Show application statuses and explain what they mean
-- "What should I work on next?" - Suggest next actions based on deadlines and priorities
-- "What's overdue?" - List all overdue tasks with details
-
-## Response Format
-- Use bullet points for lists
-- Use **bold** for important information (project names, deadlines, priorities)
-- Use emojis sparingly (only when it adds clarity: ⚠️ for urgent, ✅ for completed, 📅 for deadlines)
-- When suggesting actions, be specific about what the user should do
-
-## Error Handling
-- If data is missing or incomplete, acknowledge it and suggest how to proceed
-- If the user asks about something not in the context, politely explain you don't have that information
-- Always be helpful and suggest alternatives when you can't answer directly
-
-Remember: Your goal is to make project management easier and more efficient for the user.`;
+User data: Projects: ${JSON.stringify(projects)}, Tasks: ${JSON.stringify(tasks)}, Applications: ${JSON.stringify(applications)}`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -206,78 +103,6 @@ Remember: Your goal is to make project management easier and more efficient for 
         }
       }
     } catch (error) {
-      var lowerMessage = message.toLowerCase();
-      var lowerResponse = aiResponseText.toLowerCase();
-      
-      var wantsToCreateTask = false;
-      if (lowerMessage.includes('create task') || lowerMessage.includes('new task') || lowerMessage.includes('add task')) {
-        wantsToCreateTask = true;
-      }
-      
-      var responseAboutTask = false;
-      if (lowerResponse.includes('create') || lowerResponse.includes('task')) {
-        responseAboutTask = true;
-      }
-      
-      if (wantsToCreateTask && responseAboutTask) {
-        var projectId = '';
-        if (context && context.projects && context.projects.length > 0) {
-          projectId = context.projects[0]._id;
-        }
-        
-        var taskName = 'New Task';
-        if (message.includes('task')) {
-          var taskIndex = message.toLowerCase().indexOf('task');
-          if (taskIndex > 0) {
-            var afterTask = message.substring(taskIndex + 4).trim();
-            if (afterTask.length > 0) {
-              taskName = afterTask.split(' ')[0];
-            }
-          }
-        }
-        
-        if (projectId) {
-          actions.push({
-            type: 'create_task',
-            data: {
-              name: taskName,
-              projectId: projectId,
-              description: '',
-              priority: 'medium',
-              deadline: null
-            }
-          });
-        }
-      }
-      
-      var wantsToCreateProject = false;
-      if (lowerMessage.includes('create project') || lowerMessage.includes('new project') || lowerMessage.includes('add project')) {
-        wantsToCreateProject = true;
-      }
-      
-      if (wantsToCreateProject && req.user.isAdmin) {
-        var projectName = 'New Project';
-        if (message.includes('project')) {
-          var projectIndex = message.toLowerCase().indexOf('project');
-          if (projectIndex > 0) {
-            var afterProject = message.substring(projectIndex + 7).trim();
-            if (afterProject.length > 0) {
-              projectName = afterProject.split(' ')[0];
-            }
-          }
-        }
-        
-        actions.push({
-          type: 'create_project',
-          data: {
-            name: projectName,
-            description: '',
-            type: 'project',
-            capacity: undefined
-          }
-        });
-      }
-      
       responseMessage = aiResponseText;
     }
 
@@ -398,37 +223,11 @@ Remember: Your goal is to make project management easier and more efficient for 
       }
 
       if (actionResults.length > 0) {
-        var successMessages = [];
         for (var s = 0; s < actionResults.length; s++) {
           if (actionResults[s].success) {
-            successMessages.push(actionResults[s].message);
-          }
-        }
-        
-        if (successMessages.length > 0) {
-          responseMessage = responseMessage + '\n\n';
-          for (var sm = 0; sm < successMessages.length; sm++) {
-            responseMessage = responseMessage + successMessages[sm];
-            if (sm < successMessages.length - 1) {
-              responseMessage = responseMessage + '\n';
-            }
-          }
-        }
-
-        var errorMessages = [];
-        for (var e = 0; e < actionResults.length; e++) {
-          if (!actionResults[e].success) {
-            errorMessages.push('Error: ' + actionResults[e].error);
-          }
-        }
-        
-        if (errorMessages.length > 0) {
-          responseMessage = responseMessage + '\n\n';
-          for (var em = 0; em < errorMessages.length; em++) {
-            responseMessage = responseMessage + errorMessages[em];
-            if (em < errorMessages.length - 1) {
-              responseMessage = responseMessage + '\n';
-            }
+            responseMessage = responseMessage + '\n\n' + actionResults[s].message;
+          } else {
+            responseMessage = responseMessage + '\n\nError: ' + actionResults[s].error;
           }
         }
       }
