@@ -212,21 +212,21 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     const tasks = await Task.find({ projectId: projectId })
       .populate('createdBy', 'name lastname email');
 
-    // Create PDF using jsPDF
+   
     const doc = new jsPDF();
     let yPos = 20;
 
-    // Title
+   
     doc.setFontSize(20);
     doc.text('Project End Report', 105, yPos, { align: 'center' });
     yPos += 10;
 
-    // Date
+  
     doc.setFontSize(12);
     doc.text(`Date: ${new Date().toLocaleDateString()}`, 105, yPos, { align: 'center' });
     yPos += 15;
 
-    // Project Information
+    
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('Project Information', 20, yPos);
@@ -241,7 +241,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     doc.text(`Members: ${project.members.length}`, 20, yPos);
     yPos += 15;
 
-    // Task Statistics
+
     const totalTasks = tasks.length;
     let completedTasks = 0;
     for (let i = 0; i < tasks.length; i++) {
@@ -265,7 +265,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     doc.text(`Completion Rate: ${completionRate}%`, 20, yPos);
     yPos += 15;
 
-    // Team Members
+   
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('Team Members', 20, yPos);
@@ -304,7 +304,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
       yPos += 10;
     }
 
-    // Get PDF as base64
+    
     const base64Pdf = doc.output('datauristring').split(',')[1];
 
     
