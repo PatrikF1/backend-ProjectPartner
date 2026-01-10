@@ -4,7 +4,7 @@ import Project from "../models/Project.js";
 import Task from "../models/Task.js";
 import Application from "../models/Application.js";
 import { requireAdmin, requireAuth, AuthRequest } from "../middleware/auth.js";
-import PDFDocument from "pdfkit";
+import { jsPDF } from "jspdf";
 
 const router = express.Router();
 
@@ -212,38 +212,36 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     const tasks = await Task.find({ projectId: projectId })
       .populate('createdBy', 'name lastname email');
 
-    
-    const doc = new PDFDocument({ margin: 50 });
-    const chunks: Buffer[] = [];
+    // Create PDF using jsPDF
+    const doc = new jsPDF();
+    let yPos = 20;
 
-    doc.on('data', (chunk: Buffer) => {
-      chunks.push(chunk);
-    });
+    // Title
+    doc.setFontSize(20);
+    doc.text('Project End Report', 105, yPos, { align: 'center' });
+    yPos += 10;
 
-    const pdfPromise = new Promise<string>((resolve) => {
-      doc.on('end', () => {
-        const pdfBuffer = Buffer.concat(chunks);
-        const base64Pdf = pdfBuffer.toString('base64');
-        resolve(base64Pdf);
-      });
-    });
+    // Date
+    doc.setFontSize(12);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 105, yPos, { align: 'center' });
+    yPos += 15;
 
-    
-    doc.fontSize(20).text('Project End Report', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text(`Date: ${new Date().toLocaleDateString()}`, { align: 'center' });
-    doc.moveDown(2);
+    // Project Information
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Project Information', 20, yPos);
+    yPos += 10;
 
-    
-    doc.fontSize(16).text('Project Information', { underline: true });
-    doc.moveDown();
-    doc.fontSize(12);
-    doc.text(`Name: ${project.name}`);
-    doc.text(`Type: ${project.type || 'N/A'}`);
-    doc.text(`Members: ${project.members.length}`);
-    doc.moveDown();
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Name: ${project.name}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Type: ${project.type || 'N/A'}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Members: ${project.members.length}`, 20, yPos);
+    yPos += 15;
 
-    
+    // Task Statistics
     const totalTasks = tasks.length;
     let completedTasks = 0;
     for (let i = 0; i < tasks.length; i++) {
@@ -253,20 +251,35 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     }
     const completionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0.0';
 
-    doc.fontSize(16).text('Task Statistics', { underline: true });
-    doc.moveDown();
-    doc.fontSize(12);
-    doc.text(`Total Tasks: ${totalTasks}`);
-    doc.text(`Completed: ${completedTasks}`);
-    doc.text(`Completion Rate: ${completionRate}%`);
-    doc.moveDown();
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Task Statistics', 20, yPos);
+    yPos += 10;
 
-    
-    doc.fontSize(16).text('Team Members', { underline: true });
-    doc.moveDown();
-    doc.fontSize(12);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Tasks: ${totalTasks}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Completed: ${completedTasks}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Completion Rate: ${completionRate}%`, 20, yPos);
+    yPos += 15;
+
+    // Team Members
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Team Members', 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
 
     for (let j = 0; j < project.members.length; j++) {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+
       const member = project.members[j] as any;
       let memberName = (member.name || '') + ' ' + (member.lastname || '');
       memberName = memberName.trim() || member.email;
@@ -285,15 +298,14 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
         }
       }
 
-      doc.text(`${memberName} (${member.email})`);
-      doc.text(`  Tasks: ${memberTasks} | Completed: ${memberCompleted}`);
-      doc.moveDown(0.5);
+      doc.text(`${memberName} (${member.email})`, 20, yPos);
+      yPos += 7;
+      doc.text(`  Tasks: ${memberTasks} | Completed: ${memberCompleted}`, 20, yPos);
+      yPos += 10;
     }
 
-    doc.end();
-
-   
-    const base64Pdf = await pdfPromise;
+    // Get PDF as base64
+    const base64Pdf = doc.output('datauristring').split(',')[1];
 
     
     await Task.deleteMany({ projectId: projectId });
