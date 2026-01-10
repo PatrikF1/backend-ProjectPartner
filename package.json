@@ -15,10 +15,11 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "fontkit": "^2.0.4",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
     "openai": "^6.10.0",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.15.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
