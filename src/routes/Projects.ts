@@ -254,6 +254,20 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+    const replaceCroatianChars = (text: string): string => {
+      return text
+        .replace(/ć/g, 'c')
+        .replace(/č/g, 'c')
+        .replace(/đ/g, 'd')
+        .replace(/š/g, 's')
+        .replace(/ž/g, 'z')
+        .replace(/Ć/g, 'C')
+        .replace(/Č/g, 'C')
+        .replace(/Đ/g, 'D')
+        .replace(/Š/g, 'S')
+        .replace(/Ž/g, 'Z');
+    };
+
     let yPos = 800;
     const margin = 50;
     const lineHeight = 15;
@@ -292,7 +306,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     });
     yPos -= lineHeight * 1.5;
 
-    page.drawText(`Name: ${project.name}`, {
+    page.drawText(`Name: ${replaceCroatianChars(project.name)}`, {
       x: margin,
       y: yPos,
       size: normalSize,
@@ -301,7 +315,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     });
     yPos -= lineHeight;
 
-    page.drawText(`Type: ${project.type || 'N/A'}`, {
+    page.drawText(`Type: ${replaceCroatianChars(project.type || 'N/A')}`, {
       x: margin,
       y: yPos,
       size: normalSize,
@@ -372,7 +386,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
       }
 
       const member = memberStats[j];
-      const memberText = `${member.name} (${member.email})`;
+      const memberText = `${replaceCroatianChars(member.name)} (${member.email})`;
       if (memberText.length > 0) {
         currentPage.drawText(memberText, {
           x: margin,
