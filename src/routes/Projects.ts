@@ -373,14 +373,16 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
 
       const member = memberStats[j];
       const memberText = `${member.name} (${member.email})`;
-      currentPage.drawText(memberText, {
-        x: margin,
-        y: yPos,
-        size: normalSize,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
-      yPos -= lineHeight;
+      if (memberText.length > 0) {
+        currentPage.drawText(memberText, {
+          x: margin,
+          y: yPos,
+          size: normalSize,
+          font: helveticaFont,
+          color: rgb(0, 0, 0),
+        });
+        yPos -= lineHeight;
+      }
 
       const statsText = `  Tasks: ${member.tasks} | Completed: ${member.completed}`;
       currentPage.drawText(statsText, {
@@ -407,9 +409,12 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
       pdfUrl: 'data:application/pdf;base64,' + base64Pdf
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error ending project:', error);
-    return res.status(500).json({ msg: 'Error ending project' });
+    return res.status(500).json({ 
+      msg: 'Error ending project',
+      error: error?.message || String(error)
+    });
   }
 });
 
