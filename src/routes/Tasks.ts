@@ -56,8 +56,7 @@ router.get("/my", requireAuth, async (req: AuthRequest, res) => {
     const userProjects = await Project.find({ members: req.user._id });
     const projectIds = userProjects.map(p => p._id);
     const tasks = await Task.find({
-      projectId: { $in: projectIds },
-      isArchived: false
+      projectId: { $in: projectIds }
     })
       .populate('createdBy', 'name lastname email')
       .populate('projectId', 'name')
@@ -121,27 +120,6 @@ router.delete("/:id", requireAuth, async (req, res) => {
   } 
   catch (error) {
     return res.status(500).json({ msg: "Error deleting task" });
-  }
-});
-
-router.put("/:id/archive", requireAuth, async (req: AuthRequest, res) => {
-  try {
-    await connectToDatabase();
-    const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ msg: "Task not found" });
-
-    task.isArchived = true;
-    task.archivedAt = new Date();
-    await task.save();
-
-    await task.populate('createdBy', 'name lastname email');
-    await task.populate('projectId', 'name');
-    await task.populate('applicationId', 'idea');
-
-    return res.status(200).json(task);
-  } 
-  catch (error) {
-    return res.status(500).json({ msg: "Error archiving task" });
   }
 });
 

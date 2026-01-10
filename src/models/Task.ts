@@ -8,8 +8,6 @@ export interface ITask extends Document {
   status: 'not-started' | 'in-progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
   deadline: Date | null;
-  isArchived: boolean;
-  archivedAt: Date | null;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -45,14 +43,6 @@ const TaskSchema: Schema = new Schema({
     default: 'medium',
   },
   deadline: {
-    type: Date,
-    default: null,
-  },
-  isArchived: {
-    type: Boolean,
-    default: false,
-  },
-  archivedAt: {
     type: Date,
     default: null,
   },

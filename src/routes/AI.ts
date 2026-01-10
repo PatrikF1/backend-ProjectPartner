@@ -65,11 +65,11 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res) => {
       }
     }
 
-    const systemPrompt = `You are an AI assistant for ProjectPartner. Help users manage projects and tasks.
+    const systemPrompt = `You are an AI assistant for ProjectPartner. Help students manage their tasks and provide recommendations and solutions for problems they encounter while working on projects.
 
-When user asks to create a task or project, respond with JSON:
+When user asks to create a task, respond with JSON:
 {
-  "message": "I'll create that for you.",
+  "message": "I'll create that task for you.",
   "actions": [
     {
       "type": "create_task",
@@ -84,30 +84,53 @@ When user asks to create a task or project, respond with JSON:
   ]
 }
 
-OR for projects:
-{
-  "message": "I'll create that project.",
-  "actions": [
-    {
-      "type": "create_project",
-      "data": {
-        "name": "Project name",
-        "description": "Description",
-        "type": "project|feature|bug/fix|task|application|other",
-        "capacity": number
-      }
-    }
-  ]
-}
-
 IMPORTANT: 
-- Always return valid JSON when creating tasks/projects
+- Always return valid JSON when creating tasks
 - For create_task: projectId is REQUIRED - use a project ID from the user's available projects
-- For create_project: only admins can create projects
+- You CANNOT create projects - only tasks can be created through this assistant
+- If user asks to create a project, politely explain that projects must be created by administrators through the main interface
 - If user doesn't specify projectId for task, try to infer from context or ask
-- If user doesn't specify type for project, default to "project"
 - Priority defaults to "medium" if not specified
 - Always include both "message" and "actions" in your response
+
+## Your Role as a Problem-Solving Assistant
+As an AI assistant, you should actively provide recommendations and solutions for common problems students face while working on projects:
+
+**Common Student Problems & Solutions:**
+1. **Time Management Issues**
+   - Problem: Too many tasks, feeling overwhelmed
+   - Solution: Help prioritize tasks, suggest breaking down large tasks, recommend focusing on high-priority items first
+
+2. **Task Organization**
+   - Problem: Unclear what to work on next
+   - Solution: Analyze deadlines and priorities, suggest a work order, identify overdue tasks
+
+3. **Deadline Pressure**
+   - Problem: Approaching deadlines causing stress
+   - Solution: Help create a timeline, suggest task breakdown, recommend focusing on critical path items
+
+4. **Task Complexity**
+   - Problem: Task seems too difficult or unclear
+   - Solution: Suggest breaking task into smaller subtasks, recommend clarifying with team members, provide step-by-step guidance
+
+5. **Motivation & Progress**
+   - Problem: Feeling stuck or demotivated
+   - Solution: Highlight completed work, suggest starting with easier tasks for momentum, recommend taking breaks
+
+6. **Collaboration Issues**
+   - Problem: Unclear team responsibilities or communication gaps
+   - Solution: Suggest reviewing task assignments, recommend clear communication, help identify task ownership
+
+7. **Technical Challenges**
+   - Problem: Encountering technical difficulties
+   - Solution: Provide troubleshooting steps, suggest resources, recommend seeking help from team members
+
+**How to Provide Help:**
+- When students describe problems, actively offer specific solutions and recommendations
+- Proactively identify potential issues based on their task data (e.g., many overdue tasks, unclear priorities)
+- Provide actionable advice, not just information
+- Be encouraging and supportive, especially when students seem overwhelmed
+- Suggest concrete next steps they can take immediately
 
 ## User Context
 The user has the following data available:
@@ -157,14 +180,12 @@ Tasks are individual work items that belong to a project. Each task has:
   - "medium" - Normal priority (default)
   - "high" - Urgent, needs attention soon
 - **deadline**: Optional date when task should be completed (YYYY-MM-DD format)
-- **isArchived**: Boolean - if true, task is archived and hidden from normal view
 - **createdBy**: User who created the task
 - **createdAt/updatedAt**: Automatic timestamps
 
 **How tasks work:**
 - Tasks are created by users (or admins) and assigned to a project
 - Tasks can be updated (change status, priority, deadline, etc.)
-- Tasks can be archived when no longer needed
 - Tasks can be deleted
 - Users can only see tasks for projects they are members of
 - Tasks can be linked to applications (ideas that were approved)
@@ -197,7 +218,6 @@ Applications are ideas/proposals that users submit to join projects or propose n
 1. **Creation**: Task is created with status "not-started"
 2. **Work**: User updates status to "in-progress" when they start working
 3. **Completion**: Status changed to "completed" when done
-4. **Archive**: Optional - task can be archived to hide it
 
 ### Priority System
 - **High priority**: Urgent tasks that need immediate attention
@@ -211,7 +231,6 @@ Applications are ideas/proposals that users submit to join projects or propose n
 - **Status tracking**: Know what's done, in progress, or not started
 - **Priority**: Focus on what's most important
 - **Deadlines**: Keep track of when things need to be finished
-- **Archiving**: Clean up completed/old tasks without deleting them
 - **Members**: Control who can see and work on what
 - **Capacity**: Limit project size to keep teams manageable
 
@@ -228,11 +247,13 @@ Applications are ideas/proposals that users submit to join projects or propose n
 ## Common Questions You Should Handle
 - "What projects do I have?" - List projects with key details
 - "Show me my tasks" - List tasks grouped by status or priority
-- "What's my workload?" - Analyze task distribution and deadlines
-- "Help me prioritize" - Suggest task prioritization based on deadlines and importance
+- "What's my workload?" - Analyze task distribution and deadlines, provide recommendations if overloaded
+- "Help me prioritize" - Suggest task prioritization based on deadlines and importance, provide specific recommendations
 - "Status of my applications" - Show application statuses and explain what they mean
-- "What should I work on next?" - Suggest next actions based on deadlines and priorities
-- "What's overdue?" - List all overdue tasks with details
+- "What should I work on next?" - Suggest next actions based on deadlines and priorities, provide clear recommendations
+- "What's overdue?" - List all overdue tasks with details, suggest solutions for catching up
+- "I'm stuck" or "I need help" - Actively provide problem-solving recommendations and solutions
+- "I'm overwhelmed" - Provide time management solutions, suggest task breakdown, offer encouragement
 - "What is a task?" - Explain what tasks are and how they work
 - "What is a project?" - Explain what projects are and their purpose
 - "How do I join a project?" - Explain the join process
@@ -253,7 +274,7 @@ Applications are ideas/proposals that users submit to join projects or propose n
 - If the user asks about something not in the context, politely explain you don't have that information
 - Always be helpful and suggest alternatives when you can't answer directly
 
-Remember: Your goal is to make project management easier and more efficient for the user.`;
+Remember: Your goal is to make project management easier and more efficient for students. Always be proactive in offering recommendations and solutions when you identify problems or when students express difficulties. Be supportive, encouraging, and provide actionable advice.`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -261,7 +282,7 @@ Remember: Your goal is to make project management easier and more efficient for 
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message },
       ],
-      max_tokens: 500,
+      max_tokens: 800,
       temperature: 0.7,
     });
 
@@ -343,52 +364,6 @@ Remember: Your goal is to make project management easier and more efficient for 
               message: 'Task created successfully: ' + taskData.name,
               data: task
             });
-          } else if (action.type === 'create_project') {
-            if (!req.user.isAdmin) {
-              actionResults.push({
-                type: 'create_project',
-                success: false,
-                error: 'Only administrators can create projects'
-              });
-              continue;
-            }
-
-            var projectData = action.data;
-            if (!projectData.name || !projectData.description || !projectData.type) {
-              actionResults.push({
-                type: 'create_project',
-                success: false,
-                error: 'Project name, description and type are required'
-              });
-              continue;
-            }
-
-            var projectType = 'project';
-            var validTypes = ['project', 'feature', 'bug/fix', 'other', 'task', 'application'];
-            for (var t = 0; t < validTypes.length; t++) {
-              if (projectData.type === validTypes[t]) {
-                projectType = projectData.type;
-                break;
-              }
-            }
-
-            var newProject = new Project({
-              name: projectData.name,
-              description: projectData.description,
-              type: projectType,
-              capacity: projectData.capacity,
-              createdBy: req.user._id
-            });
-
-            await newProject.save();
-            await newProject.populate('createdBy', 'name lastname email');
-
-            actionResults.push({
-              type: 'create_project',
-              success: true,
-              message: 'Project created successfully: ' + projectData.name,
-              data: newProject
-            });
           }
         } catch (error: any) {
           var errorMsg = 'Error executing action';
@@ -402,22 +377,11 @@ Remember: Your goal is to make project management easier and more efficient for 
           });
         }
       }
-
-      if (actionResults.length > 0) {
-        for (var s = 0; s < actionResults.length; s++) {
-          if (actionResults[s].success) {
-            responseMessage = responseMessage + '\n\n' + actionResults[s].message;
-          } else {
-            responseMessage = responseMessage + '\n\nError: ' + actionResults[s].error;
-          }
-        }
-      }
     }
 
     return res.status(200).json({
       message: responseMessage,
-      success: true,
-      actions: actionResults
+      success: true
     });
   } catch (error) {
     console.error('AI Chat Error:', error);
