@@ -4,7 +4,7 @@ import Project from "../models/Project.js";
 import Task from "../models/Task.js";
 import Application from "../models/Application.js";
 import { requireAdmin, requireAuth, AuthRequest } from "../middleware/auth.js";
-import PdfPrinter from "pdfmake";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 const router = express.Router();
 
@@ -249,67 +249,152 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
       });
     }
 
-    const fonts = {
-      Roboto: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
-      }
-    };
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]);
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const printer = new PdfPrinter(fonts);
+    let yPos = 800;
+    const margin = 50;
+    const lineHeight = 15;
+    const titleSize = 20;
+    const subheaderSize = 16;
+    const normalSize = 12;
 
-    const docDefinition: any = {
-      content: [
-        { text: 'Project End Report', style: 'header', alignment: 'center' },
-        { text: `Date: ${new Date().toLocaleDateString()}`, alignment: 'center', margin: [0, 0, 0, 20] },
-        { text: 'Project Information', style: 'subheader', margin: [0, 10, 0, 10] },
-        { text: `Name: ${project.name}`, margin: [0, 5, 0, 5] },
-        { text: `Type: ${project.type || 'N/A'}`, margin: [0, 5, 0, 5] },
-        { text: `Members: ${project.members.length}`, margin: [0, 5, 0, 20] },
-        { text: 'Task Statistics', style: 'subheader', margin: [0, 10, 0, 10] },
-        { text: `Total Tasks: ${totalTasks}`, margin: [0, 5, 0, 5] },
-        { text: `Completed: ${completedTasks}`, margin: [0, 5, 0, 5] },
-        { text: `Completion Rate: ${completionRate}%`, margin: [0, 5, 0, 20] },
-        { text: 'Team Members', style: 'subheader', margin: [0, 10, 0, 10] },
-        ...memberStats.map(member => [
-          { text: `${member.name} (${member.email})`, margin: [0, 5, 0, 2] },
-          { text: `  Tasks: ${member.tasks} | Completed: ${member.completed}`, margin: [0, 0, 0, 10] }
-        ]).flat()
-      ],
-      styles: {
-        header: {
-          fontSize: 20,
-          bold: true
-        },
-        subheader: {
-          fontSize: 16,
-          bold: true
-        }
-      },
-      defaultStyle: {
-        fontSize: 12
-      }
-    };
-
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
-    const chunks: Buffer[] = [];
-
-    pdfDoc.on('data', (chunk: Buffer) => {
-      chunks.push(chunk);
+    const titleText = 'Project End Report';
+    const titleWidth = helveticaBoldFont.widthOfTextAtSize(titleText, titleSize);
+    page.drawText(titleText, {
+      x: (595 - titleWidth) / 2,
+      y: yPos,
+      size: titleSize,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
     });
+    yPos -= 30;
 
-    const pdfPromise = new Promise<string>((resolve) => {
-      pdfDoc.on('end', () => {
-        const pdfBuffer = Buffer.concat(chunks);
-        const base64Pdf = pdfBuffer.toString('base64');
-        resolve(base64Pdf);
+    const dateText = `Date: ${new Date().toLocaleDateString()}`;
+    const dateWidth = helveticaFont.widthOfTextAtSize(dateText, normalSize);
+    page.drawText(dateText, {
+      x: (595 - dateWidth) / 2,
+      y: yPos,
+      size: normalSize,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= 40;
+
+    page.drawText('Project Information', {
+      x: margin,
+      y: yPos,
+      size: subheaderSize,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight * 1.5;
+
+    page.drawText(`Name: ${project.name}`, {
+      x: margin,
+      y: yPos,
+      size: normalSize,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight;
+
+    page.drawText(`Type: ${project.type || 'N/A'}`, {
+      x: margin,
+      y: yPos,
+      size: normalSize,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight;
+
+    page.drawText(`Members: ${project.members.length}`, {
+      x: margin,
+      y: yPos,
+      size: normalSize,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight * 2;
+
+    page.drawText('Task Statistics', {
+      x: margin,
+      y: yPos,
+      size: subheaderSize,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight * 1.5;
+
+    page.drawText(`Total Tasks: ${totalTasks}`, {
+      x: margin,
+      y: yPos,
+      size: normalSize,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight;
+
+    page.drawText(`Completed: ${completedTasks}`, {
+      x: margin,
+      y: yPos,
+      size: normalSize,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight;
+
+    page.drawText(`Completion Rate: ${completionRate}%`, {
+      x: margin,
+      y: yPos,
+      size: normalSize,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight * 2;
+
+    page.drawText('Team Members', {
+      x: margin,
+      y: yPos,
+      size: subheaderSize,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
+    yPos -= lineHeight * 1.5;
+
+    let currentPage = page;
+    for (let j = 0; j < memberStats.length; j++) {
+      if (yPos < 100) {
+        currentPage = pdfDoc.addPage([595, 842]);
+        yPos = 800;
+      }
+
+      const member = memberStats[j];
+      const memberText = `${member.name} (${member.email})`;
+      currentPage.drawText(memberText, {
+        x: margin,
+        y: yPos,
+        size: normalSize,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
       });
-    });
+      yPos -= lineHeight;
 
-    pdfDoc.end();
-    const base64Pdf = await pdfPromise;
+      const statsText = `  Tasks: ${member.tasks} | Completed: ${member.completed}`;
+      currentPage.drawText(statsText, {
+        x: margin,
+        y: yPos,
+        size: normalSize,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+      yPos -= lineHeight * 1.5;
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    const base64Pdf = Buffer.from(pdfBytes).toString('base64');
 
     
     await Task.deleteMany({ projectId: projectId });
