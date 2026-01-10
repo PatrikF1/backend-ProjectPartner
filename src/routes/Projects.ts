@@ -4,7 +4,7 @@ import Project from "../models/Project.js";
 import Task from "../models/Task.js";
 import Application from "../models/Application.js";
 import { requireAdmin, requireAuth, AuthRequest } from "../middleware/auth.js";
-import { jsPDF } from "jspdf";
+import PdfPrinter from "pdfmake";
 
 const router = express.Router();
 
@@ -212,36 +212,6 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     const tasks = await Task.find({ projectId: projectId })
       .populate('createdBy', 'name lastname email');
 
-   
-    const doc = new jsPDF();
-    let yPos = 20;
-
-   
-    doc.setFontSize(20);
-    doc.text('Project End Report', 105, yPos, { align: 'center' });
-    yPos += 10;
-
-  
-    doc.setFontSize(12);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 105, yPos, { align: 'center' });
-    yPos += 15;
-
-    
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Project Information', 20, yPos);
-    yPos += 10;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Name: ${project.name}`, 20, yPos);
-    yPos += 7;
-    doc.text(`Type: ${project.type || 'N/A'}`, 20, yPos);
-    yPos += 7;
-    doc.text(`Members: ${project.members.length}`, 20, yPos);
-    yPos += 15;
-
-
     const totalTasks = tasks.length;
     let completedTasks = 0;
     for (let i = 0; i < tasks.length; i++) {
@@ -251,35 +221,8 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     }
     const completionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0.0';
 
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Task Statistics', 20, yPos);
-    yPos += 10;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total Tasks: ${totalTasks}`, 20, yPos);
-    yPos += 7;
-    doc.text(`Completed: ${completedTasks}`, 20, yPos);
-    yPos += 7;
-    doc.text(`Completion Rate: ${completionRate}%`, 20, yPos);
-    yPos += 15;
-
-   
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Team Members', 20, yPos);
-    yPos += 10;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-
+    const memberStats: any[] = [];
     for (let j = 0; j < project.members.length; j++) {
-      if (yPos > 270) {
-        doc.addPage();
-        yPos = 20;
-      }
-
       const member = project.members[j] as any;
       let memberName = (member.name || '') + ' ' + (member.lastname || '');
       memberName = memberName.trim() || member.email;
@@ -298,14 +241,75 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
         }
       }
 
-      doc.text(`${memberName} (${member.email})`, 20, yPos);
-      yPos += 7;
-      doc.text(`  Tasks: ${memberTasks} | Completed: ${memberCompleted}`, 20, yPos);
-      yPos += 10;
+      memberStats.push({
+        name: memberName,
+        email: member.email,
+        tasks: memberTasks,
+        completed: memberCompleted
+      });
     }
 
-    
-    const base64Pdf = doc.output('datauristring').split(',')[1];
+    const fonts = {
+      Roboto: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique'
+      }
+    };
+
+    const printer = new PdfPrinter(fonts);
+
+    const docDefinition: any = {
+      content: [
+        { text: 'Project End Report', style: 'header', alignment: 'center' },
+        { text: `Date: ${new Date().toLocaleDateString()}`, alignment: 'center', margin: [0, 0, 0, 20] },
+        { text: 'Project Information', style: 'subheader', margin: [0, 10, 0, 10] },
+        { text: `Name: ${project.name}`, margin: [0, 5, 0, 5] },
+        { text: `Type: ${project.type || 'N/A'}`, margin: [0, 5, 0, 5] },
+        { text: `Members: ${project.members.length}`, margin: [0, 5, 0, 20] },
+        { text: 'Task Statistics', style: 'subheader', margin: [0, 10, 0, 10] },
+        { text: `Total Tasks: ${totalTasks}`, margin: [0, 5, 0, 5] },
+        { text: `Completed: ${completedTasks}`, margin: [0, 5, 0, 5] },
+        { text: `Completion Rate: ${completionRate}%`, margin: [0, 5, 0, 20] },
+        { text: 'Team Members', style: 'subheader', margin: [0, 10, 0, 10] },
+        ...memberStats.map(member => [
+          { text: `${member.name} (${member.email})`, margin: [0, 5, 0, 2] },
+          { text: `  Tasks: ${member.tasks} | Completed: ${member.completed}`, margin: [0, 0, 0, 10] }
+        ]).flat()
+      ],
+      styles: {
+        header: {
+          fontSize: 20,
+          bold: true
+        },
+        subheader: {
+          fontSize: 16,
+          bold: true
+        }
+      },
+      defaultStyle: {
+        fontSize: 12
+      }
+    };
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    const chunks: Buffer[] = [];
+
+    pdfDoc.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+
+    const pdfPromise = new Promise<string>((resolve) => {
+      pdfDoc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        const base64Pdf = pdfBuffer.toString('base64');
+        resolve(base64Pdf);
+      });
+    });
+
+    pdfDoc.end();
+    const base64Pdf = await pdfPromise;
 
     
     await Task.deleteMany({ projectId: projectId });
