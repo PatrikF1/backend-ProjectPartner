@@ -64,7 +64,7 @@ router.get("/events", requireAuth, async (_req: AuthRequest, res: Response) => {
       }
     }
 
-    var allEvents: any[] = [];
+    var allEvents = [];
     for (var j = 0; j < events.length; j++) {
       allEvents.push(events[j]);
     }

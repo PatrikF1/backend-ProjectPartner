@@ -1,4 +1,5 @@
 import express, { Response } from "express";
+import mongoose from "mongoose";
 import { connectToDatabase } from "../db.js";
 import Project from "../models/Project.js";
 import Task from "../models/Task.js";
@@ -114,7 +115,7 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
       return res.status(400).json({ msg: 'You are already a member of this project' });
     }
 
-    project.members.push(req.user._id as any);
+    project.members.push(req.user._id as mongoose.Types.ObjectId);
     await project.save();
     await project.populate('createdBy', 'name lastname email');
     await project.populate('members', 'name lastname email');
@@ -191,16 +192,23 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     var memberStats = [];
     for (var j = 0; j < project.members.length; j++) {
       var member = project.members[j];
-      var memberObj: any = member;
-      var memberName = (memberObj.name || '') + ' ' + (memberObj.lastname || '');
-      memberName = memberName.trim() || memberObj.email;
+      var memberName = '';
+      var memberEmail = '';
+      var memberId = '';
+
+      if (member) {
+        var memberObj = member as unknown as { name?: string; lastname?: string; email?: string; _id?: unknown };
+        memberName = (memberObj.name || '') + ' ' + (memberObj.lastname || '');
+        memberName = memberName.trim() || (memberObj.email || '');
+        memberEmail = memberObj.email || '';
+        memberId = String(memberObj._id || '');
+      }
 
       var memberTasks = 0;
       var memberCompleted = 0;
 
       for (var k = 0; k < tasks.length; k++) {
         var taskCreatorId = String(tasks[k].createdBy?._id || tasks[k].createdBy);
-        var memberId = String(memberObj._id);
         if (taskCreatorId === memberId) {
           memberTasks = memberTasks + 1;
           if (tasks[k].status === 'completed') {
@@ -211,7 +219,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
 
       memberStats.push({
         name: memberName,
-        email: memberObj.email,
+        email: memberEmail,
         tasks: memberTasks,
         completed: memberCompleted
       });

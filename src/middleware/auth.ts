@@ -21,9 +21,9 @@ export function generateToken(user: IUser): string {
   );
 }
 
-export function verifyToken(token: string): any {
+export function verifyToken(token: string) {
   try {
-    var decoded = jwt.verify(token, JWT_SECRET);
+    var decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email?: string; isAdmin?: boolean };
     return decoded;
   } catch (error) {
     return null;
