@@ -44,7 +44,7 @@ router.post("/register", async (req: Request, res: Response) => {
     
     if (body.adminKey && body.adminKey.trim()) {
       if (!ADMIN_KEY) {
-        return res.status(400).json({ msg: 'Admin key is not configured on server' });
+        return res.status(400).json({ msg: 'Admin key is not configured in .env file' });
       }
       if (body.adminKey.trim() === ADMIN_KEY) {
         isAdmin = true;

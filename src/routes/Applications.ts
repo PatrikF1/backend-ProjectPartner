@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Response } from "express";
 import { connectToDatabase } from "../db.js";
 import Application from "../models/Application.js";
 import Project from "../models/Project.js";
@@ -6,7 +6,7 @@ import { requireAuth, requireAdmin, AuthRequest } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/", requireAuth, async (req: AuthRequest, res) => {
+router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ msg: 'Unauthorized' });
@@ -29,7 +29,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.get("/", requireAuth, async (_req, res) => {
+router.get("/", requireAuth, async (_req, res: Response) => {
   try {
     await connectToDatabase();
 
@@ -45,7 +45,7 @@ router.get("/", requireAuth, async (_req, res) => {
   }
 });
 
-router.put("/:id/:action", requireAdmin, async (req: AuthRequest, res) => {
+router.put("/:id/:action", requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
     var application = await Application.findById(req.params.id);

@@ -1,11 +1,11 @@
-import express from "express";
+import express, { Response } from "express";
 import { connectToDatabase } from "../db.js";
 import Event from "../models/Event.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/events", requireAuth, async (req: AuthRequest, res) => {
+router.post("/events", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ msg: 'Unauthorized' });
@@ -30,7 +30,7 @@ router.post("/events", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.get("/events", requireAuth, async (_req: AuthRequest, res) => {
+router.get("/events", requireAuth, async (_req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
 
@@ -46,7 +46,7 @@ router.get("/events", requireAuth, async (_req: AuthRequest, res) => {
   }
 });
 
-router.delete("/events/:id", requireAuth, async (req: AuthRequest, res) => {
+router.delete("/events/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ msg: 'Unauthorized' });

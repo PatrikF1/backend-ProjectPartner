@@ -13,16 +13,16 @@ import { connectToDatabase } from "./db.js"
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
+var PORT = process.env.PORT || 3000;
 
-const app: Express = express()
+var app: Express = express();
 
-app.use(cors())
-app.use(express.json({ limit: '10mb' }))
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/', (_req: Request, res: Response) => {
-  res.send('Backend radi!!!')
-})
+  res.send('Backend radi!!!');
+});
 
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
@@ -32,17 +32,17 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api", aiRoutes);
 
-app.listen(PORT, async (error) => {
+app.listen(Number(PORT), async function(error?: Error) {
   if (error) {
-    console.log('Error starting server', error)
-    return
+    console.log('Error starting server', error);
+    return;
   }
 
   try {
-    await connectToDatabase()
-    console.log(`Application running on http://localhost:${PORT}`)
+    await connectToDatabase();
+    console.log(`Application running on http://localhost:${PORT}`);
   } catch (error) {
-    console.error('Error connecting to database:', error)
-    process.exit(1)
+    console.error('Error connecting to database:', error);
+    process.exit(1);
   }
-})
+});

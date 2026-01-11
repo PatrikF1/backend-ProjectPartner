@@ -1,22 +1,15 @@
 import jwt from 'jsonwebtoken';
-import type { JwtPayload } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import User, { type IUser } from '../models/User.js';
 import { connectToDatabase } from '../db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'token_broj';
-
-interface TokenPayload extends JwtPayload {
-  userId: string;
-  email: string;
-  isAdmin: boolean;
-}
+var JWT_SECRET = process.env.JWT_SECRET || 'token_broj';
 
 export interface AuthRequest extends Request {
   user?: IUser;
 }
 
-export const generateToken = (user: IUser) => {
+export function generateToken(user: IUser): string {
   return jwt.sign(
     { 
       userId: user._id, 
@@ -26,34 +19,38 @@ export const generateToken = (user: IUser) => {
     JWT_SECRET,
     { expiresIn: '48h' }
   );
-};
+}
 
-export const verifyToken = (token: string): TokenPayload | null => {
+export function verifyToken(token: string): any {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (typeof decoded === 'string') return null;
-    return decoded as TokenPayload;
+    var decoded = jwt.verify(token, JWT_SECRET);
+    return decoded;
   } catch (error) {
     return null;
   }
-};
+}
 
-export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const token = req.headers.authorization?.substring(7);
+    var authHeader = req.headers.authorization;
+    if (!authHeader) {
+      res.status(401).json({ msg: 'Access token is required' });
+      return;
+    }
+    var token = authHeader.substring(7);
     if (!token) {
       res.status(401).json({ msg: 'Access token is required' });
       return;
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    var decoded = verifyToken(token);
+    if (!decoded || !decoded.userId) {
       res.status(401).json({ msg: 'Invalid token' });
       return;
     }
 
     await connectToDatabase();
-    const user = await User.findById(decoded.userId);
+    var user = await User.findById(decoded.userId);
     if (!user) {
       res.status(404).json({ msg: 'User not found' });
       return;
@@ -65,24 +62,29 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
     console.error('Authentication error:', error);
     res.status(500).json({ msg: 'Error during authentication' });
   }
-};
+}
 
-export const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const token = req.headers.authorization?.substring(7);
+    var authHeader = req.headers.authorization;
+    if (!authHeader) {
+      res.status(401).json({ msg: 'Access token is required' });
+      return;
+    }
+    var token = authHeader.substring(7);
     if (!token) {
       res.status(401).json({ msg: 'Access token is required' });
       return;
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    var decoded = verifyToken(token);
+    if (!decoded || !decoded.userId) {
       res.status(401).json({ msg: 'Invalid token' });
       return;
     }
 
     await connectToDatabase();
-    const user = await User.findById(decoded.userId);
+    var user = await User.findById(decoded.userId);
     if (!user) {
       res.status(404).json({ msg: 'User not found' });
       return;
@@ -99,4 +101,4 @@ export const requireAdmin = async (req: AuthRequest, res: Response, next: NextFu
     console.error('Admin check error:', error);
     res.status(500).json({ msg: 'Error checking admin status' });
   }
-};
+}

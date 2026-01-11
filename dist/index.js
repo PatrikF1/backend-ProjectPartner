@@ -10,8 +10,8 @@ import calendarRoutes from "./routes/Calendar.js";
 import aiRoutes from "./routes/AI.js";
 import { connectToDatabase } from "./db.js";
 dotenv.config();
-const PORT = process.env.PORT || 3000;
-const app = express();
+var PORT = process.env.PORT || 3000;
+var app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.get('/', (_req, res) => {
@@ -24,7 +24,7 @@ app.use("/api/applications", applicationRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api", aiRoutes);
-app.listen(PORT, async (error) => {
+app.listen(Number(PORT), async function (error) {
     if (error) {
         console.log('Error starting server', error);
         return;
