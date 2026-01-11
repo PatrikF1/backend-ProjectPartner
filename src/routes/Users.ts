@@ -58,4 +58,19 @@ router.get("/dashboard", requireAuth, async (req: AuthRequest, res: Response) =>
   }
 });
 
+router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    await connectToDatabase();
+    var userId = req.params.id;
+    var user = await User.findById(userId).select('name lastname email phone isAdmin');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    return res.status(200).json(user);
+  } 
+  catch (error) {
+    return res.status(500).json({ msg: 'Error' });
+  }
+});
+
 export default router;
