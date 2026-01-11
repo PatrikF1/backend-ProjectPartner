@@ -10,7 +10,7 @@ const router = express.Router();
 router.get("/", requireAuth, async (_req, res: Response) => {
   try {
     await connectToDatabase();
-    const users = await User.find().select('name lastname email isAdmin');
+    var users = await User.find().select('name lastname email isAdmin');
     return res.status(200).json(users);
   } 
   catch (error) {
@@ -25,27 +25,25 @@ router.get("/dashboard", requireAuth, async (req: AuthRequest, res: Response) =>
     }
 
     await connectToDatabase();
-    const userId = req.user._id;
+    var userId = req.user._id;
 
-    const [users, projects, myProjects, applications, myApplications] = await Promise.all([
-      User.find().select('name lastname email isAdmin'),
-      Project.find()
-        .populate('createdBy', 'name lastname email')
-        .populate('members', 'name lastname email')
-        .sort({ createdAt: -1 }),
-      Project.find({ members: userId })
-        .populate('createdBy', 'name lastname email')
-        .populate('members', 'name lastname email')
-        .sort({ createdAt: -1 }),
-      Application.find()
-        .populate('projectId', 'name')
-        .populate('createdBy', 'name lastname email')
-        .sort({ createdAt: -1 }),
-      Application.find({ createdBy: userId })
-        .populate('projectId', 'name')
-        .populate('createdBy', 'name lastname email')
-        .sort({ createdAt: -1 })
-    ]);
+    var users = await User.find().select('name lastname email isAdmin');
+    var projects = await Project.find()
+      .populate('createdBy', 'name lastname email')
+      .populate('members', 'name lastname email')
+      .sort({ createdAt: -1 });
+    var myProjects = await Project.find({ members: userId })
+      .populate('createdBy', 'name lastname email')
+      .populate('members', 'name lastname email')
+      .sort({ createdAt: -1 });
+    var applications = await Application.find()
+      .populate('projectId', 'name')
+      .populate('createdBy', 'name lastname email')
+      .sort({ createdAt: -1 });
+    var myApplications = await Application.find({ createdBy: userId })
+      .populate('projectId', 'name')
+      .populate('createdBy', 'name lastname email')
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       users: users,

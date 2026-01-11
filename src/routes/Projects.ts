@@ -18,7 +18,8 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
     return res.status(401).json({ msg: 'Unauthorized' });
   }
 
-  const { name, description } = req.body as CreateProjectRequest;
+  var name = req.body.name;
+  var description = req.body.description;
 
   if (!name || !description) {
     return res.status(400).json({ msg: 'Name and description are required' });
@@ -27,14 +28,14 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
 
-    const newProject = new Project({
-      name,
-      description,
+    var newProject = new Project({
+      name: name,
+      description: description,
       type: 'project',
       createdBy: req.user._id
     });
 
-    const savedProject = await newProject.save();
+    var savedProject = await newProject.save();
     await savedProject.populate('createdBy', 'name lastname email');
     
     return res.status(201).json(savedProject);
@@ -47,7 +48,7 @@ router.get("/", requireAuth, async (_req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
 
-    const projects = await Project.find()
+    var projects = await Project.find()
       .populate('createdBy', 'name lastname email')
       .populate('members', 'name lastname email')
       .sort({ createdAt: -1 });
@@ -89,15 +90,19 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
 
     await connectToDatabase();
 
-    const project = await Project.findById(req.params.id);
+    var project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ msg: 'Project not found' });
     }
 
-    const userId = String(req.user._id);
-    const isMember = project.members.some(member => 
-      member.toString() === userId
-    );
+    var userId = String(req.user._id);
+    var isMember = false;
+    for (var i = 0; i < project.members.length; i++) {
+      if (project.members[i].toString() === userId) {
+        isMember = true;
+        break;
+      }
+    }
     if (isMember) {
       return res.status(400).json({ msg: 'You are already a member of this project' });
     }
@@ -121,15 +126,19 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
 
     await connectToDatabase();
 
-    const project = await Project.findById(req.params.id);
+    var project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ msg: 'Project not found' });
     }
 
-    const userId = req.user._id;
-    const memberIndex = project.members.findIndex(member => 
-      member.toString() === String(userId)
-    );
+    var userId = req.user._id;
+    var memberIndex = -1;
+    for (var i = 0; i < project.members.length; i++) {
+      if (project.members[i].toString() === String(userId)) {
+        memberIndex = i;
+        break;
+      }
+    }
     if (memberIndex === -1) {
       return res.status(400).json({ msg: 'You are not a member of this project' });
     }
@@ -149,9 +158,9 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
   try {
     await connectToDatabase();
 
-    const projectId = req.params.id;
+    var projectId = req.params.id;
 
-    const project = await Project.findById(projectId)
+    var project = await Project.findById(projectId)
       .populate('createdBy', 'name lastname email')
       .populate('members', 'name lastname email');
 
@@ -160,38 +169,31 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     }
 
    
-    const tasks = await Task.find({ projectId: projectId })
+    var tasks = await Task.find({ projectId: projectId })
       .populate('createdBy', 'name lastname email');
 
-    const totalTasks = tasks.length;
-    let completedTasks = 0;
-    for (let i = 0; i < tasks.length; i++) {
+    var totalTasks = tasks.length;
+    var completedTasks = 0;
+    for (var i = 0; i < tasks.length; i++) {
       if (tasks[i].status === 'completed') {
         completedTasks = completedTasks + 1;
       }
     }
-    const completionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0.0';
+    var completionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0.0';
 
-    interface MemberStat {
-      name: string;
-      email: string;
-      tasks: number;
-      completed: number;
-    }
-
-    const memberStats: MemberStat[] = [];
-    for (let j = 0; j < project.members.length; j++) {
-      const member = project.members[j];
-      const memberObj: any = member;
-      let memberName = (memberObj.name || '') + ' ' + (memberObj.lastname || '');
+    var memberStats = [];
+    for (var j = 0; j < project.members.length; j++) {
+      var member = project.members[j];
+      var memberObj: any = member;
+      var memberName = (memberObj.name || '') + ' ' + (memberObj.lastname || '');
       memberName = memberName.trim() || memberObj.email;
 
-      let memberTasks = 0;
-      let memberCompleted = 0;
+      var memberTasks = 0;
+      var memberCompleted = 0;
 
-      for (let k = 0; k < tasks.length; k++) {
-        const taskCreatorId = String(tasks[k].createdBy?._id || tasks[k].createdBy);
-        const memberId = String(memberObj._id);
+      for (var k = 0; k < tasks.length; k++) {
+        var taskCreatorId = String(tasks[k].createdBy?._id || tasks[k].createdBy);
+        var memberId = String(memberObj._id);
         if (taskCreatorId === memberId) {
           memberTasks = memberTasks + 1;
           if (tasks[k].status === 'completed') {
@@ -208,12 +210,12 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
       });
     }
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]);
-    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    var pdfDoc = await PDFDocument.create();
+    var page = pdfDoc.addPage([595, 842]);
+    var helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    var helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const replaceCroatianChars = (text: string): string => {
+    function replaceCroatianChars(text: string): string {
       return text
         .replace(/ć/g, 'c')
         .replace(/č/g, 'c')
@@ -227,15 +229,15 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
         .replace(/Ž/g, 'Z');
     };
 
-    let yPos = 800;
-    const margin = 50;
-    const lineHeight = 15;
-    const titleSize = 20;
-    const subheaderSize = 16;
-    const normalSize = 12;
+    var yPos = 800;
+    var margin = 50;
+    var lineHeight = 15;
+    var titleSize = 20;
+    var subheaderSize = 16;
+    var normalSize = 12;
 
-    const titleText = 'Project End Report';
-    const titleWidth = helveticaBoldFont.widthOfTextAtSize(titleText, titleSize);
+    var titleText = 'Project End Report';
+    var titleWidth = helveticaBoldFont.widthOfTextAtSize(titleText, titleSize);
     page.drawText(titleText, {
       x: (595 - titleWidth) / 2,
       y: yPos,
@@ -245,8 +247,8 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     });
     yPos -= 30;
 
-    const dateText = `Date: ${new Date().toLocaleDateString()}`;
-    const dateWidth = helveticaFont.widthOfTextAtSize(dateText, normalSize);
+    var dateText = `Date: ${new Date().toLocaleDateString()}`;
+    var dateWidth = helveticaFont.widthOfTextAtSize(dateText, normalSize);
     page.drawText(dateText, {
       x: (595 - dateWidth) / 2,
       y: yPos,
@@ -337,15 +339,15 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     });
     yPos -= lineHeight * 1.5;
 
-    let currentPage = page;
-    for (let j = 0; j < memberStats.length; j++) {
+    var currentPage = page;
+    for (var j = 0; j < memberStats.length; j++) {
       if (yPos < 100) {
         currentPage = pdfDoc.addPage([595, 842]);
         yPos = 800;
       }
 
-      const member = memberStats[j];
-      const memberText = `${replaceCroatianChars(member.name)} (${member.email})`;
+      var memberStat = memberStats[j];
+      var memberText = `${replaceCroatianChars(memberStat.name)} (${memberStat.email})`;
       if (memberText.length > 0) {
         currentPage.drawText(memberText, {
           x: margin,
@@ -357,7 +359,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
         yPos -= lineHeight;
       }
 
-      const statsText = `  Tasks: ${member.tasks} | Completed: ${member.completed}`;
+      var statsText = `  Tasks: ${memberStat.tasks} | Completed: ${memberStat.completed}`;
       currentPage.drawText(statsText, {
         x: margin,
         y: yPos,
@@ -368,8 +370,8 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
       yPos -= lineHeight * 1.5;
     }
 
-    const pdfBytes = await pdfDoc.save();
-    const base64Pdf = Buffer.from(pdfBytes).toString('base64');
+    var pdfBytes = await pdfDoc.save();
+    var base64Pdf = Buffer.from(pdfBytes).toString('base64');
 
     
     await Task.deleteMany({ projectId: projectId });
@@ -382,12 +384,10 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
       pdfUrl: 'data:application/pdf;base64,' + base64Pdf
     });
 
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Error ending project:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return res.status(500).json({ 
-      msg: 'Error ending project',
-      error: errorMessage
+    return res.status(500).json({
+      msg: 'Error ending project'
     });
   }
 });

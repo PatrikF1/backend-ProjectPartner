@@ -30,8 +30,8 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
 
     await connectToDatabase();
     
-    const taskData = req.body as CreateTaskRequest;
-    const task = new Task({
+    var taskData = req.body;
+    var task = new Task({
       projectId: taskData.projectId,
       applicationId: taskData.applicationId || null,
       name: taskData.name,
@@ -56,7 +56,7 @@ router.get("/", requireAuth, async (_req, res: Response) => {
   try {
     await connectToDatabase();
 
-    const tasks = await Task.find()
+    var tasks = await Task.find()
       .populate('createdBy', 'name lastname email')
       .populate('projectId', 'name')
       .populate('applicationId', 'idea')
@@ -77,9 +77,12 @@ router.get("/my", requireAuth, async (req: AuthRequest, res: Response) => {
 
     await connectToDatabase();
 
-    const userProjects = await Project.find({ members: req.user._id });
-    const projectIds = userProjects.map(p => p._id);
-    const tasks = await Task.find({
+    var userProjects = await Project.find({ members: req.user._id });
+    var projectIds = [];
+    for (var i = 0; i < userProjects.length; i++) {
+      projectIds.push(userProjects[i]._id);
+    }
+    var tasks = await Task.find({
       projectId: { $in: projectIds }
     })
       .populate('createdBy', 'name lastname email')
@@ -96,10 +99,10 @@ router.get("/my", requireAuth, async (req: AuthRequest, res: Response) => {
 router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
-    const task = await Task.findById(req.params.id);
+    var task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ msg: "Task not found" });
     
-    const updateData = req.body as UpdateTaskRequest;
+    var updateData = req.body;
     if (updateData.status) task.status = updateData.status as any;
     if (updateData.name) task.name = updateData.name;
     if (updateData.description !== undefined) task.description = updateData.description;

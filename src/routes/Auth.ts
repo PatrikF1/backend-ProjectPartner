@@ -13,7 +13,7 @@ interface RegisterRequest {
   phone?: number;
   password: string;
   c_password: string;
-  isAdmin?: boolean;
+  adminKey?: string;
 }
 
 interface LoginRequest {
@@ -33,22 +33,36 @@ router.post("/register", async (req: Request, res: Response) => {
 
     await connectToDatabase();
     
-    const exists = await User.findOne({ email: req.body.email });
+    var exists = await User.findOne({ email: req.body.email });
     if (exists) return res.status(409).json({ msg: 'User already exists' });
 
-    const passwordHash = await bcrypt.hash(req.body.password, 10);
+    var passwordHash = await bcrypt.hash(req.body.password, 10);
     
-    const newUser = new User({ 
+    var ADMIN_KEY = process.env.ADMIN_KEY;
+    var isAdmin = false;
+    
+    if (req.body.adminKey && req.body.adminKey.trim()) {
+      if (!ADMIN_KEY) {
+        return res.status(400).json({ msg: 'Admin key is not configured on server' });
+      }
+      if (req.body.adminKey.trim() === ADMIN_KEY) {
+        isAdmin = true;
+      } else {
+        return res.status(400).json({ msg: 'Invalid admin key' });
+      }
+    }
+    
+    var newUser = new User({ 
       name: req.body.name,
       lastname: req.body.lastname,
       email: req.body.email, 
       phone: req.body.phone,
       passwordHash,
-      isAdmin: req.body.isAdmin || false
+      isAdmin: isAdmin
     });
     
-    const savedUser = await newUser.save();
-    const token = generateToken(savedUser);
+    var savedUser = await newUser.save();
+    var token = generateToken(savedUser);
     
     return res.status(201).json({ 
       _id: savedUser._id, 
@@ -59,12 +73,10 @@ router.post("/register", async (req: Request, res: Response) => {
       isAdmin: savedUser.isAdmin,
       token
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Registration error:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ 
-      msg: 'Error during registration',
-      error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      msg: 'Error during registration'
     });
   }
 });
@@ -78,13 +90,13 @@ router.post('/login', async (req: Request, res: Response) => {
 
     await connectToDatabase();
 
-    const user = await User.findOne({ email: req.body.email });
+    var user = await User.findOne({ email: req.body.email });
     if (!user) return res.status(401).json({ msg: 'Invalid credentials' });
 
-    const ok = await bcrypt.compare(req.body.password, user.passwordHash);
+    var ok = await bcrypt.compare(req.body.password, user.passwordHash);
     if (!ok) return res.status(401).json({ msg: 'Invalid credentials' });
 
-    const token = generateToken(user);
+    var token = generateToken(user);
 
     return res.status(200).json({
       _id: user._id,
@@ -95,12 +107,10 @@ router.post('/login', async (req: Request, res: Response) => {
       isAdmin: user.isAdmin,
       token
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Login error:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ 
-      msg: 'Error during login',
-      error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      msg: 'Error during login'
     });
   }
 });

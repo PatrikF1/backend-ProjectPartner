@@ -5,7 +5,7 @@ export interface ITask extends Document {
   applicationId: mongoose.Types.ObjectId | null;
   name: string;
   description: string;
-  status: 'not-started' | 'in-progress' | 'completed';
+  status: string;
   deadline: Date | null;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;

@@ -12,12 +12,13 @@ router.post("/events", requireAuth, async (req: AuthRequest, res) => {
     }
 
     await connectToDatabase();
-    const event = await new Event({
+    var event = await new Event({
       title: req.body.title,
       date: req.body.date,
       description: req.body.description || '',
       sendAlert: req.body.sendAlert || false,
       projectId: req.body.projectId || null,
+      taskId: req.body.taskId || null,
       createdBy: req.user._id,
     }).save();
     await event.populate('createdBy', 'name lastname email');
@@ -33,7 +34,7 @@ router.get("/events", requireAuth, async (_req: AuthRequest, res) => {
   try {
     await connectToDatabase();
 
-    const events = await Event.find()
+    var events = await Event.find()
       .populate('createdBy', 'name lastname email')
       .populate('projectId', 'name')
       .sort({ date: 1, createdAt: -1 });
@@ -52,11 +53,11 @@ router.delete("/events/:id", requireAuth, async (req: AuthRequest, res) => {
     }
 
     await connectToDatabase();
-    const event = await Event.findById(req.params.id);
+    var event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ msg: "Event not found" });
 
-    const isAdmin = req.user.isAdmin === true;
-    const isOwner = String(event.createdBy) === String(req.user._id);
+    var isAdmin = req.user.isAdmin === true;
+    var isOwner = String(event.createdBy) === String(req.user._id);
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ msg: "Only owner or admin can delete event" });

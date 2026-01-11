@@ -52,7 +52,8 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 
     await connectToDatabase();
-    const { message, context } = req.body;
+    var message = req.body.message;
+    var context = req.body.context;
 
     if (!message) {
       return res.status(400).json({ msg: 'Message is required' });
@@ -300,11 +301,11 @@ Remember: Your goal is to make project management easier and more efficient for 
       aiResponseText = completion.choices[0].message.content;
     }
     
-    let actions: AIAction[] = [];
-    let responseMessage = aiResponseText;
+    var actions: AIAction[] = [];
+    var responseMessage = aiResponseText;
 
     try {
-      const aiResponse = JSON.parse(aiResponseText) as AIResponse;
+      var aiResponse = JSON.parse(aiResponseText) as AIResponse;
       if (aiResponse.actions && Array.isArray(aiResponse.actions)) {
         actions = aiResponse.actions;
         if (aiResponse.message) {
@@ -317,13 +318,13 @@ Remember: Your goal is to make project management easier and more efficient for 
       responseMessage = aiResponseText;
     }
 
-    const actionResults: ActionResult[] = [];
+    var actionResults: ActionResult[] = [];
     if (actions.length > 0) {
-      for (let i = 0; i < actions.length; i++) {
-        const action = actions[i];
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
         try {
           if (action.type === 'create_task') {
-            const taskData = action.data;
+            var taskData = action.data;
             if (!taskData || !taskData.name || !taskData.projectId) {
               actionResults.push({
                 type: 'create_task',
@@ -342,7 +343,7 @@ Remember: Your goal is to make project management easier and more efficient for 
               continue;
             }
 
-            const project = await Project.findById(taskData.projectId);
+            var project = await Project.findById(taskData.projectId);
             if (!project) {
               actionResults.push({
                 type: 'create_task',
@@ -361,7 +362,7 @@ Remember: Your goal is to make project management easier and more efficient for 
               continue;
             }
 
-            const task = new Task({
+            var task = new Task({
               projectId: taskData.projectId,
               applicationId: taskData.applicationId || null,
               name: taskData.name,
@@ -383,8 +384,8 @@ Remember: Your goal is to make project management easier and more efficient for 
               data: task
             });
           }
-        } catch (error: unknown) {
-          const errorMsg = error instanceof Error ? error.message : 'Error executing action';
+        } catch (error) {
+          var errorMsg = 'Error executing action';
           actionResults.push({
             type: action.type,
             success: false,
@@ -398,12 +399,10 @@ Remember: Your goal is to make project management easier and more efficient for 
       message: responseMessage,
       success: true
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('AI Chat Error:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
     return res.status(500).json({
-      msg: 'Error processing AI request',
-      error: errorMessage
+      msg: 'Error processing AI request'
     });
   }
 });
