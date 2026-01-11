@@ -2,6 +2,7 @@ import express, { Response } from "express";
 import { connectToDatabase } from "../db.js";
 import Task from "../models/Task.js";
 import Project from "../models/Project.js";
+import Event from "../models/Event.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -45,6 +46,25 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
     await task.populate('createdBy', 'name lastname email');
     await task.populate('projectId', 'name');
     await task.populate('applicationId', 'idea');
+
+    if (taskData.deadline && task.deadline) {
+      var project = await Project.findById(taskData.projectId);
+      if (project && project.members && project.members.length > 0) {
+        for (var i = 0; i < project.members.length; i++) {
+          var memberId = project.members[i];
+          var event = new Event({
+            title: taskData.name,
+            date: task.deadline,
+            description: taskData.description || 'Task deadline',
+            projectId: taskData.projectId,
+            taskId: task._id,
+            createdBy: memberId,
+            sendAlert: false
+          });
+          await event.save();
+        }
+      }
+    }
     
     return res.status(201).json(task);
   } catch (error) {

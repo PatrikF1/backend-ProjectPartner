@@ -65,40 +65,14 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
 }
 
 export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-  try {
-    var authHeader = req.headers.authorization;
-    if (!authHeader) {
-      res.status(401).json({ msg: 'Access token is required' });
+  await requireAuth(req, res, async function() {
+    if (!req.user) {
       return;
     }
-    var token = authHeader.substring(7);
-    if (!token) {
-      res.status(401).json({ msg: 'Access token is required' });
-      return;
-    }
-
-    var decoded = verifyToken(token);
-    if (!decoded || !decoded.userId) {
-      res.status(401).json({ msg: 'Invalid token' });
-      return;
-    }
-
-    await connectToDatabase();
-    var user = await User.findById(decoded.userId);
-    if (!user) {
-      res.status(404).json({ msg: 'User not found' });
-      return;
-    }
-
-    if (!user.isAdmin) {
+    if (!req.user.isAdmin) {
       res.status(403).json({ msg: 'Only administrators can access' });
       return;
     }
-
-    req.user = user;
     next();
-  } catch (error) {
-    console.error('Admin check error:', error);
-    res.status(500).json({ msg: 'Error checking admin status' });
-  }
+  });
 }
