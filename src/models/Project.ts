@@ -5,6 +5,7 @@ export interface IProject extends Document {
   description: string;
   type: string;
   isActive: boolean;
+  deadline: Date | null;
   createdBy: mongoose.Types.ObjectId;
   members: mongoose.Types.ObjectId[];
   createdAt: Date;
@@ -31,6 +32,10 @@ const ProjectSchema: Schema = new Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  deadline: {
+    type: Date,
+    default: null
   },
   createdBy: {
     type: Schema.Types.ObjectId,

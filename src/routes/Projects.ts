@@ -11,6 +11,7 @@ const router = express.Router();
 interface CreateProjectRequest {
   name: string;
   description: string;
+  deadline?: string;
 }
 
 router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
@@ -65,13 +66,16 @@ router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
 
-    const project = await Project.findById(req.params.id);
+    var project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ msg: 'Project not found' });
     }
 
     if (req.body.name) project.name = req.body.name;
     if (req.body.description) project.description = req.body.description;
+    if (req.body.deadline !== undefined) {
+      project.deadline = req.body.deadline ? new Date(req.body.deadline) : null;
+    }
 
     await project.save();
     await project.populate('createdBy', 'name lastname email');

@@ -1,6 +1,7 @@
 import express, { Response } from "express";
 import { connectToDatabase } from "../db.js";
 import Event from "../models/Event.js";
+import Project from "../models/Project.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -39,7 +40,45 @@ router.get("/events", requireAuth, async (_req: AuthRequest, res: Response) => {
       .populate('projectId', 'name')
       .sort({ date: 1, createdAt: -1 });
 
-    return res.status(200).json(events);
+    var projects = await Project.find({ deadline: { $ne: null } })
+      .populate('createdBy', 'name lastname email')
+      .populate('members', 'name lastname email');
+
+    var projectEvents = [];
+    for (var i = 0; i < projects.length; i++) {
+      var project = projects[i];
+      if (project.deadline) {
+        projectEvents.push({
+          _id: 'project_' + project._id,
+          title: 'Project Deadline: ' + project.name,
+          date: project.deadline,
+          description: 'Project deadline',
+          projectId: project._id,
+          taskId: null,
+          isProjectDeadline: true,
+          createdBy: project.createdBy,
+          project: {
+            _id: project._id,
+            name: project.name
+          }
+        });
+      }
+    }
+
+    var allEvents: any[] = [];
+    for (var j = 0; j < events.length; j++) {
+      allEvents.push(events[j]);
+    }
+    for (var k = 0; k < projectEvents.length; k++) {
+      allEvents.push(projectEvents[k]);
+    }
+    allEvents.sort(function(a, b) {
+      var dateA = new Date(a.date).getTime();
+      var dateB = new Date(b.date).getTime();
+      return dateA - dateB;
+    });
+
+    return res.status(200).json(allEvents);
   } 
   catch (error) {
     return res.status(500).json({ msg: "Error fetching events" });
