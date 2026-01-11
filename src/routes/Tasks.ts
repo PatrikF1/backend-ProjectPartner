@@ -30,7 +30,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
 
     await connectToDatabase();
     
-    var taskData = req.body;
+    var taskData = req.body as CreateTaskRequest;
     var task = new Task({
       projectId: taskData.projectId,
       applicationId: taskData.applicationId || null,
@@ -102,7 +102,7 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
     var task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ msg: "Task not found" });
     
-    var updateData = req.body;
+    var updateData = req.body as UpdateTaskRequest;
     if (updateData.status) task.status = updateData.status as any;
     if (updateData.name) task.name = updateData.name;
     if (updateData.description !== undefined) task.description = updateData.description;

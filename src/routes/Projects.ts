@@ -18,8 +18,9 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
     return res.status(401).json({ msg: 'Unauthorized' });
   }
 
-  var name = req.body.name;
-  var description = req.body.description;
+  var body = req.body as CreateProjectRequest;
+  var name = body.name;
+  var description = body.description;
 
   if (!name || !description) {
     return res.status(400).json({ msg: 'Name and description are required' });

@@ -23,29 +23,30 @@ interface LoginRequest {
 
 router.post("/register", async (req: Request, res: Response) => { 
   try {
-    if (!req.body.email || !req.body.password) {
+    var body = req.body as RegisterRequest;
+    if (!body.email || !body.password) {
       return res.status(400).json({ msg: 'Email and password are required' });
     }
     
-    if (req.body.password !== req.body.c_password) {
+    if (body.password !== body.c_password) {
       return res.status(400).json({ msg: 'Passwords do not match' });
     }
 
     await connectToDatabase();
     
-    var exists = await User.findOne({ email: req.body.email });
+    var exists = await User.findOne({ email: body.email });
     if (exists) return res.status(409).json({ msg: 'User already exists' });
 
-    var passwordHash = await bcrypt.hash(req.body.password, 10);
+    var passwordHash = await bcrypt.hash(body.password, 10);
     
     var ADMIN_KEY = process.env.ADMIN_KEY;
     var isAdmin = false;
     
-    if (req.body.adminKey && req.body.adminKey.trim()) {
+    if (body.adminKey && body.adminKey.trim()) {
       if (!ADMIN_KEY) {
         return res.status(400).json({ msg: 'Admin key is not configured on server' });
       }
-      if (req.body.adminKey.trim() === ADMIN_KEY) {
+      if (body.adminKey.trim() === ADMIN_KEY) {
         isAdmin = true;
       } else {
         return res.status(400).json({ msg: 'Invalid admin key' });
@@ -53,10 +54,10 @@ router.post("/register", async (req: Request, res: Response) => {
     }
     
     var newUser = new User({ 
-      name: req.body.name,
-      lastname: req.body.lastname,
-      email: req.body.email, 
-      phone: req.body.phone,
+      name: body.name,
+      lastname: body.lastname,
+      email: body.email, 
+      phone: body.phone,
       passwordHash,
       isAdmin: isAdmin
     });
@@ -84,16 +85,17 @@ router.post("/register", async (req: Request, res: Response) => {
 
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    if (!req.body.email || !req.body.password) {
+    var body = req.body as LoginRequest;
+    if (!body.email || !body.password) {
       return res.status(400).json({ msg: 'Email and password are required' });
     }
 
     await connectToDatabase();
-
-    var user = await User.findOne({ email: req.body.email });
+    
+    var user = await User.findOne({ email: body.email });
     if (!user) return res.status(401).json({ msg: 'Invalid credentials' });
-
-    var ok = await bcrypt.compare(req.body.password, user.passwordHash);
+    
+    var ok = await bcrypt.compare(body.password, user.passwordHash);
     if (!ok) return res.status(401).json({ msg: 'Invalid credentials' });
 
     var token = generateToken(user);
