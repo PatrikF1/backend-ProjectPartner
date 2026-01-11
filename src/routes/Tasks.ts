@@ -47,7 +47,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
     await task.populate('projectId', 'name');
     await task.populate('applicationId', 'idea');
 
-    if (taskData.deadline && task.deadline) {
+    if (taskData.deadline && task.deadline && req.user && req.user.isAdmin) {
       var project = await Project.findById(taskData.projectId);
       if (project && project.members && project.members.length > 0) {
         for (var i = 0; i < project.members.length; i++) {
@@ -58,8 +58,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
             description: taskData.description || 'Task deadline',
             projectId: taskData.projectId,
             taskId: task._id,
-            createdBy: memberId,
-            sendAlert: false
+            createdBy: memberId
           });
           await event.save();
         }
@@ -101,7 +100,7 @@ router.get("/my", requireAuth, async (req: AuthRequest, res: Response) => {
     var projectIds = [];
     for (var i = 0; i < userProjects.length; i++) {
       projectIds.push(userProjects[i]._id);
-    }
+  }
     var tasks = await Task.find({
       projectId: { $in: projectIds }
     })

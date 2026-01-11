@@ -17,7 +17,6 @@ router.post("/events", requireAuth, async (req: AuthRequest, res: Response) => {
       title: req.body.title,
       date: req.body.date,
       description: req.body.description || '',
-      sendAlert: req.body.sendAlert || false,
       projectId: req.body.projectId || null,
       taskId: req.body.taskId || null,
       createdBy: req.user._id,

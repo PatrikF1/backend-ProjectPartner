@@ -4,7 +4,6 @@ export interface IEvent extends Document {
   title: string;
   date: Date;
   description: string;
-  sendAlert: boolean;
   projectId: mongoose.Types.ObjectId | null;
   taskId: mongoose.Types.ObjectId | null;
   createdBy: mongoose.Types.ObjectId;
@@ -24,10 +23,6 @@ const EventSchema: Schema = new Schema({
   description: {
     type: String,
     default: '',
-  },
-  sendAlert: {
-    type: Boolean,
-    default: false,
   },
   projectId: {
     type: Schema.Types.ObjectId,
