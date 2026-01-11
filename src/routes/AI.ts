@@ -2,8 +2,6 @@ import express, { Response } from 'express';
 import OpenAI from 'openai';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { connectToDatabase } from '../db.js';
-import Task from '../models/Task.js';
-import Project from '../models/Project.js';
 
 const router = express.Router();
 
@@ -17,30 +15,6 @@ const openai = process.env.OPENAI_API_KEY
     })
   : null;
 
-interface AIAction {
-  type: string;
-  data?: {
-    name?: string;
-    projectId?: string;
-    description?: string;
-    status?: string;
-    deadline?: string;
-    applicationId?: string;
-  };
-}
-
-interface AIResponse {
-  message?: string;
-  actions?: AIAction[];
-}
-
-interface ActionResult {
-  type: string;
-  success: boolean;
-  message?: string;
-  error?: string;
-  data?: unknown;
-}
 
 router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -91,31 +65,13 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const systemPrompt = `You are an AI assistant for ProjectPartner. Help students manage their tasks and provide recommendations and solutions for problems they encounter while working on projects.
-
-When user asks to create a task, respond with JSON:
-{
-  "message": "I'll create that task for you.",
-  "actions": [
-    {
-      "type": "create_task",
-      "data": {
-        "name": "Task name",
-        "projectId": "project_id",
-        "description": "Description",
-        "deadline": "YYYY-MM-DD"
-      }
-    }
-  ]
-}
+    const systemPrompt = `You are an AI assistant for ProjectPartner. Your main role is to answer common questions from students about projects, technology, deadlines, and other aspects, and to provide recommendations and solutions for problems students encounter while working on projects.
 
 IMPORTANT: 
-- Always return valid JSON when creating tasks
-- For create_task: projectId is REQUIRED - use a project ID from the user's available projects
-- You CANNOT create projects - only tasks can be created through this assistant
-- If user asks to create a project, politely explain that projects must be created by administrators through the main interface
-- If user doesn't specify projectId for task, try to infer from context or ask
-- Always include both "message" and "actions" in your response
+- You CANNOT create tasks or projects through this assistant
+- If user asks to create a task or project, politely explain that tasks must be created through the main interface
+- Focus on answering questions, providing advice, and offering solutions to problems
+- Be helpful, supportive, and provide actionable recommendations
 
 ## Your Role as a Problem-Solving Assistant
 As an AI assistant, you should actively provide recommendations and solutions for common problems students face while working on projects:
@@ -272,6 +228,9 @@ Applications are ideas/proposals that users submit to join projects or propose n
 - "What is an application?" - Explain the application/idea system
 - "How does the system work?" - Give overview of ProjectPartner functionality
 - "Why do I need to join a project?" - Explain project membership and permissions
+- Technology questions - Answer questions about technologies, frameworks, tools, and best practices
+- Deadline questions - Help with understanding deadlines, time management, and planning
+- Project management questions - Provide advice on organizing work, collaboration, and project structure
 
 ## Response Format
 - Use bullet points for lists
@@ -300,103 +259,9 @@ Remember: Your goal is to make project management easier and more efficient for 
     if (completion.choices && completion.choices[0] && completion.choices[0].message && completion.choices[0].message.content) {
       aiResponseText = completion.choices[0].message.content;
     }
-    
-    var actions: AIAction[] = [];
-    var responseMessage = aiResponseText;
-
-    try {
-      var aiResponse = JSON.parse(aiResponseText) as AIResponse;
-      if (aiResponse.actions && Array.isArray(aiResponse.actions)) {
-        actions = aiResponse.actions;
-        if (aiResponse.message) {
-          responseMessage = aiResponse.message;
-        } else {
-          responseMessage = aiResponseText;
-        }
-      }
-    } catch (error) {
-      responseMessage = aiResponseText;
-    }
-
-    var actionResults: ActionResult[] = [];
-    if (actions.length > 0) {
-      for (var i = 0; i < actions.length; i++) {
-        var action = actions[i];
-        try {
-          if (action.type === 'create_task') {
-            var taskData = action.data;
-            if (!taskData || !taskData.name || !taskData.projectId) {
-              actionResults.push({
-                type: 'create_task',
-                success: false,
-                error: 'Task name and projectId are required'
-              });
-              continue;
-            }
-
-            if (!taskData || !taskData.projectId) {
-              actionResults.push({
-                type: 'create_task',
-                success: false,
-                error: 'Project ID is required'
-              });
-              continue;
-            }
-
-            var project = await Project.findById(taskData.projectId);
-            if (!project) {
-              actionResults.push({
-                type: 'create_task',
-                success: false,
-                error: 'Project not found'
-              });
-              continue;
-            }
-
-            if (!req.user) {
-              actionResults.push({
-                type: 'create_task',
-                success: false,
-                error: 'User not authenticated'
-              });
-              continue;
-            }
-
-            var task = new Task({
-              projectId: taskData.projectId,
-              applicationId: taskData.applicationId || null,
-              name: taskData.name,
-              description: taskData.description || '',
-              status: taskData.status || 'not-started',
-              deadline: taskData.deadline ? new Date(taskData.deadline) : null,
-              createdBy: req.user._id
-            });
-
-            await task.save();
-            await task.populate('createdBy', 'name lastname email');
-            await task.populate('projectId', 'name');
-            await task.populate('applicationId', 'idea');
-
-            actionResults.push({
-              type: 'create_task',
-              success: true,
-              message: 'Task created successfully: ' + taskData.name,
-              data: task
-            });
-          }
-        } catch (error) {
-          var errorMsg = 'Error executing action';
-          actionResults.push({
-            type: action.type,
-            success: false,
-            error: errorMsg
-          });
-        }
-      }
-    }
 
     return res.status(200).json({
-      message: responseMessage,
+      message: aiResponseText,
       success: true
     });
   } catch (error) {

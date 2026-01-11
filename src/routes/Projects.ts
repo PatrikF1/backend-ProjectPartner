@@ -22,6 +22,7 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
   var body = req.body as CreateProjectRequest;
   var name = body.name;
   var description = body.description;
+  var deadline = body.deadline;
 
   if (!name || !description) {
     return res.status(400).json({ msg: 'Name and description are required' });
@@ -34,6 +35,7 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
       name: name,
       description: description,
       type: 'project',
+      deadline: deadline ? new Date(deadline) : null,
       createdBy: req.user._id
     });
 
