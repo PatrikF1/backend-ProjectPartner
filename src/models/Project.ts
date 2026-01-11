@@ -3,8 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IProject extends Document {
   name: string;
   description: string;
-  type: 'workspace' | 'project-space' | 'team-space' | 'meeting-room';
-  capacity?: number;
+  type: string;
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
   members: mongoose.Types.ObjectId[];
@@ -27,14 +26,7 @@ const ProjectSchema: Schema = new Schema({
   },
   type: {
     type: String,
-    enum: ['project', 'feature', 'bug/fix', 'other', 'task', 'application'],
-    required: true
-  },
-  capacity: {
-    type: Number,
-    required: false,
-    min: 1,
-    max: 100
+    default: 'project'
   },
   isActive: {
     type: Boolean,

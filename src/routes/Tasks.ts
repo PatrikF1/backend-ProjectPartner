@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Response } from "express";
 import { connectToDatabase } from "../db.js";
 import Task from "../models/Task.js";
 import Project from "../models/Project.js";
@@ -6,18 +6,38 @@ import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/", requireAuth, async (req: AuthRequest, res) => {
+interface CreateTaskRequest {
+  projectId: string;
+  applicationId?: string;
+  name: string;
+  description?: string;
+  status?: string;
+  deadline?: string;
+}
+
+interface UpdateTaskRequest {
+  name?: string;
+  description?: string;
+  status?: string;
+  deadline?: string;
+}
+
+router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Unauthorized' });
+    }
+
     await connectToDatabase();
     
+    const taskData = req.body as CreateTaskRequest;
     const task = new Task({
-      projectId: req.body.projectId,
-      applicationId: req.body.applicationId || null,
-      name: req.body.name,
-      description: req.body.description || '',
-      status: req.body.status || 'not-started',
-      priority: req.body.priority || 'medium',
-      deadline: req.body.deadline ? new Date(req.body.deadline) : null,
+      projectId: taskData.projectId,
+      applicationId: taskData.applicationId || null,
+      name: taskData.name,
+      description: taskData.description || '',
+      status: taskData.status || 'not-started',
+      deadline: taskData.deadline ? new Date(taskData.deadline) : null,
       createdBy: req.user._id
     });
 
@@ -32,7 +52,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, async (_req, res: Response) => {
   try {
     await connectToDatabase();
 
@@ -49,8 +69,12 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/my", requireAuth, async (req: AuthRequest, res) => {
+router.get("/my", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Unauthorized' });
+    }
+
     await connectToDatabase();
 
     const userProjects = await Project.find({ members: req.user._id });
@@ -69,36 +93,17 @@ router.get("/my", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.get("/project/:projectId/application/:applicationId", requireAuth, async (req: AuthRequest, res) => {
-  try {
-    await connectToDatabase();
-    const tasks = await Task.find({
-      projectId: req.params.projectId,
-      applicationId: req.params.applicationId,
-      createdBy: req.user._id
-    })
-      .populate('createdBy', 'name lastname email')
-      .populate('projectId', 'name')
-      .populate('applicationId', 'idea')
-      .sort({ createdAt: -1 });
-
-    return res.status(200).json(tasks);
-  } catch (error) {
-    return res.status(500).json({ msg: "Error fetching tasks" });
-  }
-});
-
-router.put("/:id", requireAuth, async (req: AuthRequest, res) => {
+router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ msg: "Task not found" });
     
-    if (req.body.status) task.status = req.body.status;
-    if (req.body.name) task.name = req.body.name;
-    if (req.body.description !== undefined) task.description = req.body.description;
-    if (req.body.priority) task.priority = req.body.priority;
-    if (req.body.deadline !== undefined) task.deadline = req.body.deadline ? new Date(req.body.deadline) : null;
+    const updateData = req.body as UpdateTaskRequest;
+    if (updateData.status) task.status = updateData.status as any;
+    if (updateData.name) task.name = updateData.name;
+    if (updateData.description !== undefined) task.description = updateData.description;
+    if (updateData.deadline !== undefined) task.deadline = updateData.deadline ? new Date(updateData.deadline) : null;
 
     await task.save();
     await task.populate('createdBy', 'name lastname email');
@@ -112,7 +117,7 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res: Response) => {
   try {
     await connectToDatabase();
     await Task.findByIdAndDelete(req.params.id);

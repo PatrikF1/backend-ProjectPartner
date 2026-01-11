@@ -20,7 +20,7 @@ const app: Express = express()
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   res.send('Backend radi!!!')
 })
 

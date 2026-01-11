@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import type { JwtPayload } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import User from '../models/User.js';
+import User, { type IUser } from '../models/User.js';
 import { connectToDatabase } from '../db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'token_broj';
@@ -13,10 +13,10 @@ interface TokenPayload extends JwtPayload {
 }
 
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: IUser;
 }
 
-export const generateToken = (user: any) => {
+export const generateToken = (user: IUser) => {
   return jwt.sign(
     { 
       userId: user._id, 
@@ -38,44 +38,65 @@ export const verifyToken = (token: string): TokenPayload | null => {
   }
 };
 
-export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = req.headers.authorization?.substring(7);
-    if (!token) return res.status(401).json({ msg: 'Access token is required' });
+    if (!token) {
+      res.status(401).json({ msg: 'Access token is required' });
+      return;
+    }
 
     const decoded = verifyToken(token);
-    if (!decoded) return res.status(401).json({ msg: 'Invalid token' });
+    if (!decoded) {
+      res.status(401).json({ msg: 'Invalid token' });
+      return;
+    }
 
     await connectToDatabase();
     const user = await User.findById(decoded.userId);
-    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user) {
+      res.status(404).json({ msg: 'User not found' });
+      return;
+    }
 
     req.user = user;
     next();
   } catch (error) {
     console.error('Authentication error:', error);
-    return res.status(500).json({ msg: 'Error during authentication' });
+    res.status(500).json({ msg: 'Error during authentication' });
   }
 };
 
-export const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = req.headers.authorization?.substring(7);
-    if (!token) return res.status(401).json({ msg: 'Access token is required' });
+    if (!token) {
+      res.status(401).json({ msg: 'Access token is required' });
+      return;
+    }
 
     const decoded = verifyToken(token);
-    if (!decoded) return res.status(401).json({ msg: 'Invalid token' });
+    if (!decoded) {
+      res.status(401).json({ msg: 'Invalid token' });
+      return;
+    }
 
     await connectToDatabase();
     const user = await User.findById(decoded.userId);
-    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user) {
+      res.status(404).json({ msg: 'User not found' });
+      return;
+    }
 
-    if (!user.isAdmin) return res.status(403).json({ msg: 'Only administrators can access' });
+    if (!user.isAdmin) {
+      res.status(403).json({ msg: 'Only administrators can access' });
+      return;
+    }
 
     req.user = user;
     next();
   } catch (error) {
     console.error('Admin check error:', error);
-    return res.status(500).json({ msg: 'Error checking admin status' });
+    res.status(500).json({ msg: 'Error checking admin status' });
   }
 };

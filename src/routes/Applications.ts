@@ -8,6 +8,10 @@ const router = express.Router();
 
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Unauthorized' });
+    }
+
     await connectToDatabase();
     const application = await new Application({
       projectId: req.body.projectId,
@@ -25,28 +29,13 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, async (_req, res) => {
   try {
     await connectToDatabase();
 
     const applications = await Application.find()
       .populate('createdBy', 'name lastname email')
       .populate('projectId', 'name')
-      .sort({ createdAt: -1 });
-
-    return res.status(200).json(applications);
-  } 
-  catch (error) {
-    return res.status(500).json({ msg: "Error fetching applications" });
-  }
-});
-
-router.get("/my", requireAuth, async (req: AuthRequest, res) => {
-  try {
-    await connectToDatabase();
-    const applications = await Application.find({ createdBy: req.user._id })
-      .populate('projectId', 'name')
-      .populate('createdBy', 'name lastname email')
       .sort({ createdAt: -1 });
 
     return res.status(200).json(applications);

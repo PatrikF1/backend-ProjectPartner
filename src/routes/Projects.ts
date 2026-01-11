@@ -1,4 +1,4 @@
-import express, { Response, Request } from "express";
+import express, { Response } from "express";
 import { connectToDatabase } from "../db.js";
 import Project from "../models/Project.js";
 import Task from "../models/Task.js";
@@ -8,25 +8,20 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 const router = express.Router();
 
-interface CreateProjectBody {
+interface CreateProjectRequest {
   name: string;
   description: string;
-  type: 'project' | 'feature' | 'bug/fix' | 'other' | 'task' | 'application';
-  capacity?: number;
-}
-
-interface UpdateProjectBody {
-  name?: string;
-  description?: string;
-  type?: 'project' | 'feature' | 'bug/fix' | 'other' | 'task' | 'application';
-  capacity?: number;
 }
 
 router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
-  const { name, description, type, capacity } = req.body as CreateProjectBody;
+  if (!req.user) {
+    return res.status(401).json({ msg: 'Unauthorized' });
+  }
 
-  if (!name || !description || !type) {
-    return res.status(400).json({ msg: 'Name, description and project type are required' });
+  const { name, description } = req.body as CreateProjectRequest;
+
+  if (!name || !description) {
+    return res.status(400).json({ msg: 'Name and description are required' });
   }
 
   try {
@@ -35,8 +30,7 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
     const newProject = new Project({
       name,
       description,
-      type,
-      capacity,
+      type: 'project',
       createdBy: req.user._id
     });
 
@@ -49,7 +43,7 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
+router.get("/", requireAuth, async (_req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
 
@@ -64,38 +58,6 @@ router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.get("/my", requireAuth, async (req: AuthRequest, res: Response) => {
-  try {
-    await connectToDatabase();
-    const projects = await Project.find({ members: req.user._id })
-      .populate('createdBy', 'name lastname email')
-      .populate('members', 'name lastname email')
-      .sort({ createdAt: -1 });
-
-    return res.status(200).json(projects);
-  } 
-  catch (error) {
-    return res.status(500).json({ msg: "Greška pri dohvatanju projekata" });
-  }
-});
-
-router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
-  try {
-    await connectToDatabase();
-
-    const project = await Project.findById(req.params.id)
-      .populate('createdBy', 'name lastname email')
-      .populate('members', 'name lastname email');
-
-    if (!project) {
-      return res.status(404).json({ msg: 'Project not found' });
-    }
-
-    return res.status(200).json(project);
-  } catch (error) {
-    return res.status(500).json({ msg: 'Error fetching project' });
-  }
-});
 
 router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
@@ -108,8 +70,6 @@ router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
 
     if (req.body.name) project.name = req.body.name;
     if (req.body.description) project.description = req.body.description;
-    if (req.body.type) project.type = req.body.type;
-    if (req.body.capacity) project.capacity = req.body.capacity;
 
     await project.save();
     await project.populate('createdBy', 'name lastname email');
@@ -121,23 +81,12 @@ router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.delete("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
-  try {
-    await connectToDatabase();
-
-    const deletedProject = await Project.findByIdAndDelete(req.params.id);
-    if (!deletedProject) {
-      return res.status(404).json({ msg: 'Project not found' });
-    }
-
-    return res.status(200).json({ msg: 'Project successfully deleted' });
-  } catch (error) {
-    return res.status(500).json({ msg: 'Error deleting project' });
-  }
-});
-
 router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Unauthorized' });
+    }
+
     await connectToDatabase();
 
     const project = await Project.findById(req.params.id);
@@ -145,18 +94,15 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
       return res.status(404).json({ msg: 'Project not found' });
     }
 
+    const userId = String(req.user._id);
     const isMember = project.members.some(member => 
-      member.toString() === req.user._id.toString()
+      member.toString() === userId
     );
     if (isMember) {
       return res.status(400).json({ msg: 'You are already a member of this project' });
     }
 
-    if (project.capacity && project.members.length >= project.capacity) {
-      return res.status(400).json({ msg: 'Project is full' });
-    }
-
-    project.members.push(req.user._id);
+    project.members.push(req.user._id as any);
     await project.save();
     await project.populate('createdBy', 'name lastname email');
     await project.populate('members', 'name lastname email');
@@ -169,6 +115,10 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
 
 router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Unauthorized' });
+    }
+
     await connectToDatabase();
 
     const project = await Project.findById(req.params.id);
@@ -176,8 +126,9 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
       return res.status(404).json({ msg: 'Project not found' });
     }
 
+    const userId = req.user._id;
     const memberIndex = project.members.findIndex(member => 
-      member.toString() === req.user._id.toString()
+      member.toString() === String(userId)
     );
     if (memberIndex === -1) {
       return res.status(400).json({ msg: 'You are not a member of this project' });
@@ -221,18 +172,26 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     }
     const completionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0.0';
 
-    const memberStats: any[] = [];
+    interface MemberStat {
+      name: string;
+      email: string;
+      tasks: number;
+      completed: number;
+    }
+
+    const memberStats: MemberStat[] = [];
     for (let j = 0; j < project.members.length; j++) {
-      const member = project.members[j] as any;
-      let memberName = (member.name || '') + ' ' + (member.lastname || '');
-      memberName = memberName.trim() || member.email;
+      const member = project.members[j];
+      const memberObj: any = member;
+      let memberName = (memberObj.name || '') + ' ' + (memberObj.lastname || '');
+      memberName = memberName.trim() || memberObj.email;
 
       let memberTasks = 0;
       let memberCompleted = 0;
 
       for (let k = 0; k < tasks.length; k++) {
         const taskCreatorId = String(tasks[k].createdBy?._id || tasks[k].createdBy);
-        const memberId = String(member._id);
+        const memberId = String(memberObj._id);
         if (taskCreatorId === memberId) {
           memberTasks = memberTasks + 1;
           if (tasks[k].status === 'completed') {
@@ -243,7 +202,7 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
 
       memberStats.push({
         name: memberName,
-        email: member.email,
+        email: memberObj.email,
         tasks: memberTasks,
         completed: memberCompleted
       });
@@ -423,11 +382,12 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
       pdfUrl: 'data:application/pdf;base64,' + base64Pdf
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error ending project:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ 
       msg: 'Error ending project',
-      error: error?.message || String(error)
+      error: errorMessage
     });
   }
 });

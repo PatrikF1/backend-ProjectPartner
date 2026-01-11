@@ -6,6 +6,21 @@ import { generateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+interface RegisterRequest {
+  name: string;
+  lastname: string;
+  email: string;
+  phone?: number;
+  password: string;
+  c_password: string;
+  isAdmin?: boolean;
+}
+
+interface LoginRequest {
+  email: string;
+  password: string;
+}
+
 router.post("/register", async (req: Request, res: Response) => { 
   try {
     if (!req.body.email || !req.body.password) {
@@ -44,11 +59,12 @@ router.post("/register", async (req: Request, res: Response) => {
       isAdmin: savedUser.isAdmin,
       token
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Registration error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ 
       msg: 'Error during registration',
-      error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
     });
   }
 });
@@ -79,11 +95,12 @@ router.post('/login', async (req: Request, res: Response) => {
       isAdmin: user.isAdmin,
       token
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Login error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ 
       msg: 'Error during login',
-      error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
     });
   }
 });

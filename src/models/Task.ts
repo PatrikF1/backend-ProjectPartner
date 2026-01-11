@@ -6,7 +6,6 @@ export interface ITask extends Document {
   name: string;
   description: string;
   status: 'not-started' | 'in-progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
   deadline: Date | null;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -36,11 +35,6 @@ const TaskSchema: Schema = new Schema({
     type: String,
     enum: ['not-started', 'in-progress', 'completed'],
     default: 'not-started',
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    default: 'medium',
   },
   deadline: {
     type: Date,

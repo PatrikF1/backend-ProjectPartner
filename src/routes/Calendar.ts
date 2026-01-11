@@ -7,6 +7,10 @@ const router = express.Router();
 
 router.post("/events", requireAuth, async (req: AuthRequest, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Unauthorized' });
+    }
+
     await connectToDatabase();
     const event = await new Event({
       title: req.body.title,
@@ -25,7 +29,7 @@ router.post("/events", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.get("/events", requireAuth, async (req: AuthRequest, res) => {
+router.get("/events", requireAuth, async (_req: AuthRequest, res) => {
   try {
     await connectToDatabase();
 
@@ -43,11 +47,15 @@ router.get("/events", requireAuth, async (req: AuthRequest, res) => {
 
 router.delete("/events/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Unauthorized' });
+    }
+
     await connectToDatabase();
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ msg: "Event not found" });
 
-    const isAdmin = req.user?.isAdmin === true;
+    const isAdmin = req.user.isAdmin === true;
     const isOwner = String(event.createdBy) === String(req.user._id);
 
     if (!isOwner && !isAdmin) {

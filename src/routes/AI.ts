@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Response } from 'express';
 import OpenAI from 'openai';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { connectToDatabase } from '../db.js';
@@ -17,7 +17,32 @@ const openai = process.env.OPENAI_API_KEY
     })
   : null;
 
-router.post('/chat', requireAuth, async (req: AuthRequest, res) => {
+interface AIAction {
+  type: string;
+  data?: {
+    name?: string;
+    projectId?: string;
+    description?: string;
+    status?: string;
+    deadline?: string;
+    applicationId?: string;
+  };
+}
+
+interface AIResponse {
+  message?: string;
+  actions?: AIAction[];
+}
+
+interface ActionResult {
+  type: string;
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: unknown;
+}
+
+router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     if (!openai) {
       return res.status(500).json({
@@ -77,7 +102,6 @@ When user asks to create a task, respond with JSON:
         "name": "Task name",
         "projectId": "project_id",
         "description": "Description",
-        "priority": "low|medium|high",
         "deadline": "YYYY-MM-DD"
       }
     }
@@ -90,7 +114,6 @@ IMPORTANT:
 - You CANNOT create projects - only tasks can be created through this assistant
 - If user asks to create a project, politely explain that projects must be created by administrators through the main interface
 - If user doesn't specify projectId for task, try to infer from context or ask
-- Priority defaults to "medium" if not specified
 - Always include both "message" and "actions" in your response
 
 ## Your Role as a Problem-Solving Assistant
@@ -99,11 +122,11 @@ As an AI assistant, you should actively provide recommendations and solutions fo
 **Common Student Problems & Solutions:**
 1. **Time Management Issues**
    - Problem: Too many tasks, feeling overwhelmed
-   - Solution: Help prioritize tasks, suggest breaking down large tasks, recommend focusing on high-priority items first
+   - Solution: Help organize tasks, suggest breaking down large tasks, recommend focusing on tasks with approaching deadlines first
 
 2. **Task Organization**
    - Problem: Unclear what to work on next
-   - Solution: Analyze deadlines and priorities, suggest a work order, identify overdue tasks
+   - Solution: Analyze deadlines, suggest a work order, identify overdue tasks
 
 3. **Deadline Pressure**
    - Problem: Approaching deadlines causing stress
@@ -152,8 +175,6 @@ The user has the following data available:
 Projects are collaborative workspaces where teams work together. Each project has:
 - **name**: The project title
 - **description**: What the project is about
-- **type**: Can be "project", "feature", "bug/fix", "task", "application", or "other" - this categorizes what kind of work it is
-- **capacity**: Optional limit on how many members can join (1-100)
 - **members**: Array of user IDs who are part of the project
 - **createdBy**: The admin who created the project
 - **isActive**: Whether the project is currently active (default: true)
@@ -175,17 +196,13 @@ Tasks are individual work items that belong to a project. Each task has:
   - "not-started" - Task hasn't been started yet (default)
   - "in-progress" - Task is currently being worked on
   - "completed" - Task is finished
-- **priority**: 
-  - "low" - Not urgent, can wait
-  - "medium" - Normal priority (default)
-  - "high" - Urgent, needs attention soon
 - **deadline**: Optional date when task should be completed (YYYY-MM-DD format)
 - **createdBy**: User who created the task
 - **createdAt/updatedAt**: Automatic timestamps
 
 **How tasks work:**
 - Tasks are created by users (or admins) and assigned to a project
-- Tasks can be updated (change status, priority, deadline, etc.)
+- Tasks can be updated (change status, deadline, etc.)
 - Tasks can be deleted
 - Users can only see tasks for projects they are members of
 - Tasks can be linked to applications (ideas that were approved)
@@ -209,7 +226,7 @@ Applications are ideas/proposals that users submit to join projects or propose n
 
 ### Project Membership System
 - Users can join projects they're interested in
-- Projects have a capacity limit (if set) - once full, no more members can join
+- Projects can have unlimited members
 - Users can see all tasks for projects they are members of
 - Only project members can create tasks for that project
 - Admins can see all projects and tasks
@@ -219,34 +236,27 @@ Applications are ideas/proposals that users submit to join projects or propose n
 2. **Work**: User updates status to "in-progress" when they start working
 3. **Completion**: Status changed to "completed" when done
 
-### Priority System
-- **High priority**: Urgent tasks that need immediate attention
-- **Medium priority**: Normal tasks (default)
-- **Low priority**: Tasks that can wait
-
 ### Why These Features Exist
 - **Projects**: Organize work into logical groups, allow team collaboration
 - **Tasks**: Break down projects into manageable pieces of work
 - **Applications**: Let users propose ideas and get approval before starting work
 - **Status tracking**: Know what's done, in progress, or not started
-- **Priority**: Focus on what's most important
 - **Deadlines**: Keep track of when things need to be finished
 - **Members**: Control who can see and work on what
-- **Capacity**: Limit project size to keep teams manageable
 
 ## Response Guidelines
 1. **Be Specific**: When referencing projects, tasks, or applications, use their actual names and IDs when available
 2. **Provide Actionable Insights**: Don't just list data - analyze it and provide useful insights
 3. **Use Natural Language**: Format dates, priorities, and statuses in a human-readable way
 4. **Handle Empty Data**: If arrays are empty, suggest next steps (e.g., "You don't have any tasks yet. Would you like help creating one?")
-5. **Prioritize Urgency**: When discussing tasks, highlight those with approaching deadlines or high priority. ${overdueTasks > 0 ? `⚠️ You have ${overdueTasks} overdue task(s) that need immediate attention!` : ''}
+5. **Prioritize Urgency**: When discussing tasks, highlight those with approaching deadlines. ${overdueTasks > 0 ? `⚠️ You have ${overdueTasks} overdue task(s) that need immediate attention!` : ''}
 6. **Status Awareness**: For applications, explain what pending/approved/rejected means and suggest actions
 7. **Be Concise**: Keep responses brief but informative - aim for 2-4 sentences unless the user asks for detailed analysis
 8. **Time Awareness**: Consider the current date (${currentDate}) when discussing deadlines and priorities
 
 ## Common Questions You Should Handle
 - "What projects do I have?" - List projects with key details
-- "Show me my tasks" - List tasks grouped by status or priority
+- "Show me my tasks" - List tasks grouped by status
 - "What's my workload?" - Analyze task distribution and deadlines, provide recommendations if overloaded
 - "Help me prioritize" - Suggest task prioritization based on deadlines and importance, provide specific recommendations
 - "Status of my applications" - Show application statuses and explain what they mean
@@ -257,7 +267,6 @@ Applications are ideas/proposals that users submit to join projects or propose n
 - "What is a task?" - Explain what tasks are and how they work
 - "What is a project?" - Explain what projects are and their purpose
 - "How do I join a project?" - Explain the join process
-- "What does priority mean?" - Explain the priority system
 - "What are the task statuses?" - Explain not-started, in-progress, completed
 - "What is an application?" - Explain the application/idea system
 - "How does the system work?" - Give overview of ProjectPartner functionality
@@ -291,11 +300,11 @@ Remember: Your goal is to make project management easier and more efficient for 
       aiResponseText = completion.choices[0].message.content;
     }
     
-    var actions = [];
-    var responseMessage = aiResponseText;
+    let actions: AIAction[] = [];
+    let responseMessage = aiResponseText;
 
     try {
-      var aiResponse = JSON.parse(aiResponseText);
+      const aiResponse = JSON.parse(aiResponseText) as AIResponse;
       if (aiResponse.actions && Array.isArray(aiResponse.actions)) {
         actions = aiResponse.actions;
         if (aiResponse.message) {
@@ -308,14 +317,14 @@ Remember: Your goal is to make project management easier and more efficient for 
       responseMessage = aiResponseText;
     }
 
-    var actionResults = [];
+    const actionResults: ActionResult[] = [];
     if (actions.length > 0) {
-      for (var i = 0; i < actions.length; i++) {
-        var action = actions[i];
+      for (let i = 0; i < actions.length; i++) {
+        const action = actions[i];
         try {
           if (action.type === 'create_task') {
-            var taskData = action.data;
-            if (!taskData.name || !taskData.projectId) {
+            const taskData = action.data;
+            if (!taskData || !taskData.name || !taskData.projectId) {
               actionResults.push({
                 type: 'create_task',
                 success: false,
@@ -324,7 +333,16 @@ Remember: Your goal is to make project management easier and more efficient for 
               continue;
             }
 
-            var project = await Project.findById(taskData.projectId);
+            if (!taskData || !taskData.projectId) {
+              actionResults.push({
+                type: 'create_task',
+                success: false,
+                error: 'Project ID is required'
+              });
+              continue;
+            }
+
+            const project = await Project.findById(taskData.projectId);
             if (!project) {
               actionResults.push({
                 type: 'create_task',
@@ -334,21 +352,21 @@ Remember: Your goal is to make project management easier and more efficient for 
               continue;
             }
 
-            var priority = 'medium';
-            if (taskData.priority) {
-              var priorityLower = taskData.priority.toLowerCase();
-              if (priorityLower === 'low' || priorityLower === 'medium' || priorityLower === 'high') {
-                priority = priorityLower;
-              }
+            if (!req.user) {
+              actionResults.push({
+                type: 'create_task',
+                success: false,
+                error: 'User not authenticated'
+              });
+              continue;
             }
 
-            var task = new Task({
+            const task = new Task({
               projectId: taskData.projectId,
               applicationId: taskData.applicationId || null,
               name: taskData.name,
               description: taskData.description || '',
               status: taskData.status || 'not-started',
-              priority: priority,
               deadline: taskData.deadline ? new Date(taskData.deadline) : null,
               createdBy: req.user._id
             });
@@ -365,11 +383,8 @@ Remember: Your goal is to make project management easier and more efficient for 
               data: task
             });
           }
-        } catch (error: any) {
-          var errorMsg = 'Error executing action';
-          if (error && error.message) {
-            errorMsg = error.message;
-          }
+        } catch (error: unknown) {
+          const errorMsg = error instanceof Error ? error.message : 'Error executing action';
           actionResults.push({
             type: action.type,
             success: false,
@@ -383,10 +398,12 @@ Remember: Your goal is to make project management easier and more efficient for 
       message: responseMessage,
       success: true
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('AI Chat Error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return res.status(500).json({
       msg: 'Error processing AI request',
+      error: errorMessage
     });
   }
 });
