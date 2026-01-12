@@ -182,12 +182,28 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
 
     var totalTasks = tasks.length;
     var completedTasks = 0;
+    var inProgressTasks = 0;
+    var notStartedTasks = 0;
     for (var i = 0; i < tasks.length; i++) {
       if (tasks[i].status === 'completed') {
         completedTasks = completedTasks + 1;
+      } else if (tasks[i].status === 'in-progress') {
+        inProgressTasks = inProgressTasks + 1;
+      } else {
+        notStartedTasks = notStartedTasks + 1;
       }
     }
     var completionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0.0';
+    
+    var projectCreatedDate = project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'N/A';
+    var projectDeadline = project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline';
+    var projectCreator = project.createdBy;
+    var creatorName = '';
+    if (projectCreator && typeof projectCreator === 'object' && 'name' in projectCreator) {
+      var creatorObj = projectCreator as { name?: string; lastname?: string; email?: string };
+      creatorName = (creatorObj.name || '') + ' ' + (creatorObj.lastname || '');
+      creatorName = creatorName.trim() || (creatorObj.email || 'Unknown');
+    }
 
     var memberStats = [];
     for (var j = 0; j < project.members.length; j++) {
@@ -231,128 +247,47 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
     var helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     function replaceCroatianChars(text: string): string {
-      return text
-        .replace(/ć/g, 'c')
-        .replace(/č/g, 'c')
-        .replace(/đ/g, 'd')
-        .replace(/š/g, 's')
-        .replace(/ž/g, 'z')
-        .replace(/Ć/g, 'C')
-        .replace(/Č/g, 'C')
-        .replace(/Đ/g, 'D')
-        .replace(/Š/g, 'S')
-        .replace(/Ž/g, 'Z');
-    };
+      return text.replace(/ć/g, 'c').replace(/č/g, 'c').replace(/đ/g, 'd').replace(/š/g, 's').replace(/ž/g, 'z')
+        .replace(/Ć/g, 'C').replace(/Č/g, 'C').replace(/Đ/g, 'D').replace(/Š/g, 'S').replace(/Ž/g, 'Z');
+    }
+
+    function drawText(p: any, text: string, x: number, y: number, size: number, font: any, bold: boolean) {
+      p.drawText(text, { x: x, y: y, size: size, font: bold ? helveticaBoldFont : font, color: rgb(0, 0, 0) });
+    }
 
     var yPos = 800;
     var margin = 50;
     var lineHeight = 15;
-    var titleSize = 20;
-    var subheaderSize = 16;
-    var normalSize = 12;
 
-    var titleText = 'Project End Report';
-    var titleWidth = helveticaBoldFont.widthOfTextAtSize(titleText, titleSize);
-    page.drawText(titleText, {
-      x: (595 - titleWidth) / 2,
-      y: yPos,
-      size: titleSize,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
+    drawText(page, 'Project End Report', 200, yPos, 20, helveticaBoldFont, true);
     yPos -= 30;
-
-    var dateText = `Date: ${new Date().toLocaleDateString()}`;
-    var dateWidth = helveticaFont.widthOfTextAtSize(dateText, normalSize);
-    page.drawText(dateText, {
-      x: (595 - dateWidth) / 2,
-      y: yPos,
-      size: normalSize,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    drawText(page, `Date: ${new Date().toLocaleDateString()}`, 250, yPos, 12, helveticaFont, false);
     yPos -= 40;
 
-    page.drawText('Project Information', {
-      x: margin,
-      y: yPos,
-      size: subheaderSize,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    yPos -= lineHeight * 1.5;
-
-    page.drawText(`Name: ${replaceCroatianChars(project.name)}`, {
-      x: margin,
-      y: yPos,
-      size: normalSize,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    drawText(page, 'Project Information', margin, yPos, 16, helveticaBoldFont, true);
+    yPos -= 20;
+    drawText(page, `Name: ${replaceCroatianChars(project.name)}`, margin, yPos, 12, helveticaFont, false);
     yPos -= lineHeight;
-
-    page.drawText(`Type: ${replaceCroatianChars(project.type || 'N/A')}`, {
-      x: margin,
-      y: yPos,
-      size: normalSize,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    drawText(page, `Description: ${replaceCroatianChars(project.description || 'N/A')}`, margin, yPos, 12, helveticaFont, false);
     yPos -= lineHeight;
-
-    page.drawText(`Members: ${project.members.length}`, {
-      x: margin,
-      y: yPos,
-      size: normalSize,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
-    yPos -= lineHeight * 2;
-
-    page.drawText('Task Statistics', {
-      x: margin,
-      y: yPos,
-      size: subheaderSize,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    yPos -= lineHeight * 1.5;
-
-    page.drawText(`Total Tasks: ${totalTasks}`, {
-      x: margin,
-      y: yPos,
-      size: normalSize,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    drawText(page, `Created By: ${replaceCroatianChars(creatorName)}`, margin, yPos, 12, helveticaFont, false);
     yPos -= lineHeight;
-
-    page.drawText(`Completed: ${completedTasks}`, {
-      x: margin,
-      y: yPos,
-      size: normalSize,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    drawText(page, `Created Date: ${projectCreatedDate}`, margin, yPos, 12, helveticaFont, false);
     yPos -= lineHeight;
+    drawText(page, `Deadline: ${projectDeadline}`, margin, yPos, 12, helveticaFont, false);
+    yPos -= lineHeight;
+    drawText(page, `Members: ${project.members.length}`, margin, yPos, 12, helveticaFont, false);
+    yPos -= 30;
 
-    page.drawText(`Completion Rate: ${completionRate}%`, {
-      x: margin,
-      y: yPos,
-      size: normalSize,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
-    yPos -= lineHeight * 2;
+    drawText(page, 'Task Statistics', margin, yPos, 16, helveticaBoldFont, true);
+    yPos -= 20;
+    drawText(page, `Total: ${totalTasks} | Completed: ${completedTasks} | In Progress: ${inProgressTasks} | Not Started: ${notStartedTasks}`, margin, yPos, 12, helveticaFont, false);
+    yPos -= lineHeight;
+    drawText(page, `Completion Rate: ${completionRate}%`, margin, yPos, 12, helveticaFont, false);
+    yPos -= 30;
 
-    page.drawText('Team Members', {
-      x: margin,
-      y: yPos,
-      size: subheaderSize,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    yPos -= lineHeight * 1.5;
+    drawText(page, 'Team Members', margin, yPos, 16, helveticaBoldFont, true);
+    yPos -= 20;
 
     var currentPage = page;
     for (var j = 0; j < memberStats.length; j++) {
@@ -360,29 +295,31 @@ router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res:
         currentPage = pdfDoc.addPage([595, 842]);
         yPos = 800;
       }
-
       var memberStat = memberStats[j];
-      var memberText = `${replaceCroatianChars(memberStat.name)} (${memberStat.email})`;
-      if (memberText.length > 0) {
-        currentPage.drawText(memberText, {
-          x: margin,
-          y: yPos,
-          size: normalSize,
-          font: helveticaFont,
-          color: rgb(0, 0, 0),
-        });
-        yPos -= lineHeight;
-      }
+      var memberText = `${replaceCroatianChars(memberStat.name)} (${memberStat.email}) - Tasks: ${memberStat.tasks}, Completed: ${memberStat.completed}`;
+      drawText(currentPage, memberText, margin, yPos, 12, helveticaFont, false);
+      yPos -= lineHeight;
+    }
 
-      var statsText = `  Tasks: ${memberStat.tasks} | Completed: ${memberStat.completed}`;
-      currentPage.drawText(statsText, {
-        x: margin,
-        y: yPos,
-        size: normalSize,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
-      yPos -= lineHeight * 1.5;
+    if (yPos < 150) {
+      currentPage = pdfDoc.addPage([595, 842]);
+      yPos = 800;
+    }
+
+    drawText(currentPage, 'Task List', margin, yPos, 16, helveticaBoldFont, true);
+    yPos -= 20;
+
+    for (var l = 0; l < tasks.length; l++) {
+      if (yPos < 100) {
+        currentPage = pdfDoc.addPage([595, 842]);
+        yPos = 800;
+      }
+      var task = tasks[l];
+      var taskName = replaceCroatianChars(task.name || 'Unnamed Task');
+      var taskStatus = task.status || 'unknown';
+      var taskDeadline = task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline';
+      drawText(currentPage, `${l + 1}. ${taskName} - Status: ${taskStatus}, Deadline: ${taskDeadline}`, margin, yPos, 12, helveticaFont, false);
+      yPos -= lineHeight;
     }
 
     var pdfBytes = await pdfDoc.save();
