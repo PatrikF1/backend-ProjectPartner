@@ -37,6 +37,14 @@ router.get("/events", requireAuth, async (_req: AuthRequest, res: Response) => {
     var events = await Event.find()
       .populate('createdBy', 'name lastname email')
       .populate('projectId', 'name')
+      .populate({
+        path: 'taskId',
+        select: 'name createdBy',
+        populate: {
+          path: 'createdBy',
+          select: 'name lastname email'
+        }
+      })
       .sort({ date: 1, createdAt: -1 });
 
     var projects = await Project.find({ deadline: { $ne: null } })
