@@ -7,7 +7,7 @@ import Application from "../models/Application.js";
 import { requireAdmin, requireAuth, AuthRequest } from "../middleware/auth.js";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
-const router = express.Router();
+var router = express.Router();
 
 interface CreateProjectRequest {
   name: string;

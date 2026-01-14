@@ -3,13 +3,13 @@ import OpenAI from 'openai';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { connectToDatabase } from '../db.js';
 
-const router = express.Router();
+var router = express.Router();
 
 if (!process.env.OPENAI_API_KEY) {
   console.warn('WARNING: OPENAI_API_KEY is not set in environment variables');
 }
 
-const openai = process.env.OPENAI_API_KEY
+var openai = process.env.OPENAI_API_KEY
   ? new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     })
@@ -65,7 +65,7 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const systemPrompt = `You are an AI assistant for ProjectPartner. Your main role is to answer common questions from students about projects, technology, deadlines, and other aspects, and to provide recommendations and solutions for problems students encounter while working on projects.
+    var systemPrompt = `You are an AI assistant for ProjectPartner. Your main role is to answer common questions from students about projects, technology, deadlines, and other aspects, and to provide recommendations and solutions for problems students encounter while working on projects.
 
 IMPORTANT: 
 - You CANNOT create tasks or projects through this assistant
@@ -245,7 +245,7 @@ Applications are ideas/proposals that users submit to join projects or propose n
 
 Remember: Your goal is to make project management easier and more efficient for students. Always be proactive in offering recommendations and solutions when you identify problems or when students express difficulties. Be supportive, encouraging, and provide actionable advice.`;
 
-    const completion = await openai.chat.completions.create({
+    var completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         { role: 'system', content: systemPrompt },

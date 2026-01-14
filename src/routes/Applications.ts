@@ -4,7 +4,7 @@ import Application from "../models/Application.js";
 import Project from "../models/Project.js";
 import { requireAuth, requireAdmin, AuthRequest } from "../middleware/auth.js";
 
-const router = express.Router();
+var router = express.Router();
 
 router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
   try {

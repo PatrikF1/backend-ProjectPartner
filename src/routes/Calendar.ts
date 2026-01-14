@@ -4,7 +4,7 @@ import Event from "../models/Event.js";
 import Project from "../models/Project.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
-const router = express.Router();
+var router = express.Router();
 
 router.post("/events", requireAuth, async (req: AuthRequest, res: Response) => {
   try {

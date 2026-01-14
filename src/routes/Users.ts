@@ -5,7 +5,7 @@ import Project from "../models/Project.js";
 import Application from "../models/Application.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
-const router = express.Router();
+var router = express.Router();
 
 router.get("/", requireAuth, async (_req, res: Response) => {
   try {

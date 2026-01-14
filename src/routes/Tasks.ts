@@ -5,7 +5,7 @@ import Project from "../models/Project.js";
 import Event from "../models/Event.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
-const router = express.Router();
+var router = express.Router();
 
 interface CreateTaskRequest {
   projectId: string;

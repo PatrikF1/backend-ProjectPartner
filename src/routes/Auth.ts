@@ -4,7 +4,7 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import { generateToken } from '../middleware/auth.js';
 
-const router = express.Router();
+var router = express.Router();
 
 interface RegisterRequest {
   name: string;
