@@ -16,10 +16,6 @@ interface CreateProjectRequest {
 }
 
 router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ msg: 'Unauthorized' });
-  }
-
   var body = req.body as CreateProjectRequest;
   var name = body.name;
   var description = body.description;
@@ -37,7 +33,7 @@ router.post("/", requireAdmin, async (req: AuthRequest, res: Response) => {
       description: description,
       type: 'project',
       deadline: deadline ? new Date(deadline) : null,
-      createdBy: req.user._id
+      createdBy: req.user!._id
     });
 
     var savedProject = await newProject.save();
@@ -92,10 +88,6 @@ router.put("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
 
 router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ msg: 'Unauthorized' });
-    }
-
     await connectToDatabase();
 
     var project = await Project.findById(req.params.id);
@@ -103,7 +95,7 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
       return res.status(404).json({ msg: 'Project not found' });
     }
 
-    var userId = String(req.user._id);
+    var userId = String(req.user!._id);
     var isMember = false;
     for (var i = 0; i < project.members.length; i++) {
       if (project.members[i].toString() === userId) {
@@ -115,7 +107,7 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
       return res.status(400).json({ msg: 'You are already a member of this project' });
     }
 
-    project.members.push(req.user._id as mongoose.Types.ObjectId);
+    project.members.push(req.user!._id as mongoose.Types.ObjectId);
     await project.save();
     await project.populate('createdBy', 'name lastname email');
     await project.populate('members', 'name lastname email');
@@ -128,10 +120,6 @@ router.post("/:id/join", requireAuth, async (req: AuthRequest, res: Response) =>
 
 router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ msg: 'Unauthorized' });
-    }
-
     await connectToDatabase();
 
     var project = await Project.findById(req.params.id);
@@ -139,7 +127,7 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
       return res.status(404).json({ msg: 'Project not found' });
     }
 
-    var userId = req.user._id;
+    var userId = req.user!._id;
     var memberIndex = -1;
     for (var i = 0; i < project.members.length; i++) {
       if (project.members[i].toString() === String(userId)) {
@@ -162,7 +150,7 @@ router.post("/:id/leave", requireAuth, async (req: AuthRequest, res: Response) =
   }
 });
 
-router.post("/:id/end", requireAuth, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.post("/:id/end", requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     await connectToDatabase();
 

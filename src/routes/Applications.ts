@@ -8,16 +8,12 @@ const router = express.Router();
 
 router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ msg: 'Unauthorized' });
-    }
-
     await connectToDatabase();
     var application = await new Application({
       projectId: req.body.projectId,
       idea: req.body.idea,
       description: req.body.description,
-      createdBy: req.user._id,
+      createdBy: req.user!._id,
       status: 'pending'
     }).save();
     await application.populate('createdBy', 'name lastname email');

@@ -25,10 +25,6 @@ interface UpdateTaskRequest {
 
 router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ msg: 'Unauthorized' });
-    }
-
     await connectToDatabase();
     
     var taskData = req.body as CreateTaskRequest;
@@ -39,7 +35,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
       description: taskData.description || '',
       status: taskData.status || 'not-started',
       deadline: taskData.deadline ? new Date(taskData.deadline) : null,
-      createdBy: req.user._id
+      createdBy: req.user!._id
     });
 
     await task.save();
@@ -48,21 +44,15 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
     await task.populate('applicationId', 'idea');
 
     if (taskData.deadline && task.deadline) {
-      var project = await Project.findById(taskData.projectId);
-      if (project && project.members && project.members.length > 0) {
-        for (var i = 0; i < project.members.length; i++) {
-          var memberId = project.members[i];
-          var event = new Event({
-            title: taskData.name,
-            date: task.deadline,
-            description: taskData.description || 'Task deadline',
-            projectId: taskData.projectId,
-            taskId: task._id,
-            createdBy: req.user._id
-          });
-          await event.save();
-        }
-      }
+      var event = new Event({
+        title: taskData.name,
+        date: task.deadline,
+        description: taskData.description || 'Task deadline',
+        projectId: taskData.projectId,
+        taskId: task._id,
+        createdBy: req.user!._id
+      });
+      await event.save();
     }
     
     return res.status(201).json(task);
@@ -90,13 +80,9 @@ router.get("/", requireAuth, async (_req, res: Response) => {
 
 router.get("/my", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ msg: 'Unauthorized' });
-    }
-
     await connectToDatabase();
 
-    var userProjects = await Project.find({ members: req.user._id });
+    var userProjects = await Project.find({ members: req.user!._id });
     var projectIds = [];
     for (var i = 0; i < userProjects.length; i++) {
       projectIds.push(userProjects[i]._id);

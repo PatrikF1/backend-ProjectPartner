@@ -20,12 +20,8 @@ router.get("/", requireAuth, async (_req, res: Response) => {
 
 router.get("/dashboard", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ msg: 'Unauthorized' });
-    }
-
     await connectToDatabase();
-    var userId = req.user._id;
+    var userId = req.user!._id;
 
     var users = await User.find().select('name lastname email isAdmin');
     var projects = await Project.find()
