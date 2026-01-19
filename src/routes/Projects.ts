@@ -366,4 +366,115 @@ router.delete("/:id", requireAdmin, async (req: AuthRequest, res: Response) => {
   }
 });
 
+router.post("/:id/files", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    await connectToDatabase();
+
+    var projectId = req.params.id;
+    var name = req.body.name;
+    var url = req.body.url;
+
+    if (!name || !url) {
+      return res.status(400).json({ msg: 'Name and URL are required' });
+    }
+
+    var project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ msg: 'Project not found' });
+    }
+
+    var userId = String(req.user!._id);
+    var isAdmin = req.user!.isAdmin;
+    var isMember = false;
+    for (var i = 0; i < project.members.length; i++) {
+      if (project.members[i].toString() === userId) {
+        isMember = true;
+        break;
+      }
+    }
+
+    if (!isAdmin && !isMember) {
+      return res.status(403).json({ msg: 'You must be a member of this project' });
+    }
+
+    project.files.push({
+      name: name,
+      url: url,
+      addedBy: req.user!._id as mongoose.Types.ObjectId,
+      addedAt: new Date()
+    });
+
+    await project.save();
+    await project.populate('files.addedBy', 'name lastname email');
+
+    return res.status(201).json({ msg: 'File added successfully', files: project.files });
+
+  } catch (error) {
+    console.error('Error adding file:', error);
+    return res.status(500).json({ msg: 'Error adding file' });
+  }
+});
+
+router.delete("/:id/files/:fileId", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    await connectToDatabase();
+
+    var projectId = req.params.id;
+    var fileId = req.params.fileId;
+
+    var project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ msg: 'Project not found' });
+    }
+
+    var fileIndex = -1;
+    for (var i = 0; i < project.files.length; i++) {
+      if (String(project.files[i]._id) === fileId) {
+        fileIndex = i;
+        break;
+      }
+    }
+
+    if (fileIndex === -1) {
+      return res.status(404).json({ msg: 'File not found' });
+    }
+
+    var isAdmin = req.user!.isAdmin;
+    var isFileOwner = String(project.files[fileIndex].addedBy) === String(req.user!._id);
+
+    if (!isAdmin && !isFileOwner) {
+      return res.status(403).json({ msg: 'You can only delete your own files' });
+    }
+
+    project.files.splice(fileIndex, 1);
+    await project.save();
+
+    return res.status(200).json({ msg: 'File deleted successfully', files: project.files });
+
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return res.status(500).json({ msg: 'Error deleting file' });
+  }
+});
+
+router.get("/:id/files", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    await connectToDatabase();
+
+    var projectId = req.params.id;
+    var project = await Project.findById(projectId)
+      .populate('files.addedBy', 'name lastname email');
+
+    if (!project) {
+      return res.status(404).json({ msg: 'Project not found' });
+    }
+
+    return res.status(200).json(project.files);
+
+  } catch (error) {
+    console.error('Error fetching files:', error);
+    return res.status(500).json({ msg: 'Error fetching files' });
+  }
+});
+
 export default router;

@@ -1,5 +1,13 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IProjectFile {
+  _id?: mongoose.Types.ObjectId;
+  name: string;
+  url: string;
+  addedBy: mongoose.Types.ObjectId;
+  addedAt: Date;
+}
+
 export interface IProject extends Document {
   name: string;
   description: string;
@@ -8,6 +16,7 @@ export interface IProject extends Document {
   deadline: Date | null;
   createdBy: mongoose.Types.ObjectId;
   members: mongoose.Types.ObjectId[];
+  files: IProjectFile[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +54,12 @@ const ProjectSchema: Schema = new Schema({
   members: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  }],
+  files: [{
+    name: { type: String, required: true },
+    url: { type: String, required: true },
+    addedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    addedAt: { type: Date, default: Date.now }
   }]
 }, {
   timestamps: true
