@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import OpenAI from 'openai';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { connectToDatabase } from '../db.js';
+import Task from '../models/Task.js';
 
 var router = express.Router();
 
@@ -67,11 +68,12 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
 
     var systemPrompt = `You are an AI assistant for ProjectPartner. Your main role is to answer common questions from students about projects, technology, deadlines, and other aspects, and to provide recommendations and solutions for problems students encounter while working on projects.
 
-IMPORTANT: 
-- You CANNOT create tasks or projects through this assistant
-- If user asks to create a task or project, politely explain that tasks must be created through the main interface
-- Focus on answering questions, providing advice, and offering solutions to problems
-- Be helpful, supportive, and provide actionable recommendations
+TASK CREATION:
+- When user wants to create a task, add this at the end:
+  NEWTASK projectId; taskName; description
+- Use project _id from list below
+- If user doesn't say which project, ask them
+- Example: NEWTASK abc123; Fix login; Fix the login button
 
 ## Your Role as a Problem-Solving Assistant
 As an AI assistant, you should actively provide recommendations and solutions for common problems students face while working on projects:
@@ -260,9 +262,41 @@ Remember: Your goal is to make project management easier and more efficient for 
       aiResponseText = completion.choices[0].message.content;
     }
 
+    var createdTask = null;
+    
+    if (aiResponseText.includes('NEWTASK ')) {
+      var startIndex = aiResponseText.indexOf('NEWTASK ') + 8;
+      var endIndex = aiResponseText.indexOf('\n', startIndex);
+      if (endIndex === -1) endIndex = aiResponseText.length;
+      
+      var taskLine = aiResponseText.substring(startIndex, endIndex);
+      var parts = taskLine.split(';');
+      
+      var projectId = parts[0] ? parts[0].trim() : '';
+      var taskName = parts[1] ? parts[1].trim() : '';
+      var taskDesc = parts[2] ? parts[2].trim() : '';
+      
+      if (projectId && taskName) {
+        var newTask = new Task({
+          projectId: projectId,
+          name: taskName,
+          description: taskDesc,
+          status: 'not-started',
+          createdBy: req.user!._id
+        });
+        
+        await newTask.save();
+        createdTask = newTask;
+        
+        aiResponseText = aiResponseText.replace('NEWTASK ' + taskLine, '');
+        aiResponseText = aiResponseText.trim() + '\n\nTask "' + taskName + '" created!';
+      }
+    }
+
     return res.status(200).json({
       message: aiResponseText,
-      success: true
+      success: true,
+      createdTask: createdTask
     });
   } catch (error) {
     console.error('AI Chat Error:', error);
