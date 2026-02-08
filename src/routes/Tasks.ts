@@ -17,10 +17,7 @@ interface CreateTaskRequest {
 }
 
 interface UpdateTaskRequest {
-  name?: string;
-  description?: string;
   status?: string;
-  deadline?: string;
 }
 
 router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
@@ -109,10 +106,7 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
     
     var updateData = req.body as UpdateTaskRequest;
     if (updateData.status) task.status = updateData.status;
-    if (updateData.name) task.name = updateData.name;
-    if (updateData.description !== undefined) task.description = updateData.description;
-    if (updateData.deadline !== undefined) task.deadline = updateData.deadline ? new Date(updateData.deadline) : null;
-
+    
     await task.save();
     await task.populate('createdBy', 'name lastname email');
     await task.populate('projectId', 'name');
